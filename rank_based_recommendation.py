@@ -10,8 +10,8 @@ import plotly.express as px
 # Load data
 @st.cache_data()
 def load_data():
-    movies = pd.read_csv('movies.csv')
-    ratings = pd.read_csv('ratings.csv')
+    movies = pd.read_csv('movielens/movies.csv')
+    ratings = pd.read_csv('movielens/ratings.csv')
     return movies, ratings
 
 movies, ratings = load_data()
