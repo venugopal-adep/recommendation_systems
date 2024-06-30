@@ -4,6 +4,7 @@ import plotly.graph_objs as go
 from scipy.spatial import distance
 
 st.title("Nearest Neighbors Algorithm")
+st.write("**Developed by : Venugopal Adep**")
 
 st.markdown(r"""
 This algorithm finds the top k nearest items/users based on similarity between the items/users, which means the new item will be recommended based on the similarity between the two items/users.
@@ -87,7 +88,7 @@ if dimension == "2D":
             x=[test_point[0], x_values[idx]],
             y=[test_point[1], y_values[idx]],
             mode='lines',
-            line=dict(color='lightgrey', width=1),
+            line=dict(color='red', width=3),
             showlegend=False
         ))
 
@@ -130,7 +131,7 @@ else:
             y=[test_point[1], y_values[idx]],
             z=[test_point[2], z_values[idx]],
             mode='lines',
-            line=dict(color='lightgrey', width=1),
+            line=dict(color='red', width=3),
             showlegend=False
         ))
 
