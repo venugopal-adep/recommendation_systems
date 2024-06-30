@@ -6,6 +6,7 @@ import plotly.express as px
 from scipy.spatial import distance
 
 st.title("Collaborative Filtering Explained")
+st.write("**Developed by : Venugopal Adep**")
 
 st.markdown(r"""
 **Collaborative Filtering** is a technique used in recommendation systems. The main idea behind collaborative filtering is that if a user's likes/dislikes are similar to another user's likes/dislikes, then their tastes are similar. We can use this to recommend products that other similar users liked.
@@ -80,9 +81,13 @@ if filtering_type == 'User-User':
     st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for User {random_index + 1} based on similar users:</span>", unsafe_allow_html=True)
 
     # Find similar users
-    similar_users = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    similar_users_display = [f"User{user + 1}" for user in similar_users]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {similar_users_display}</span>", unsafe_allow_html=True)
+    similar_users_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
+    similar_users_display = [f"User{user + 1}" for user in similar_users_indices]
+    similar_users_scores = similarity_matrix[random_index][similar_users_indices]
+    
+    # Create a formatted string with users and their similarity scores
+    similar_users_with_scores = [f"{user} (similarity: {score:.2f})" for user, score in zip(similar_users_display, similar_users_scores)]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {similar_users_with_scores}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between User {random_index + 1} and all other users.")
@@ -92,7 +97,7 @@ if filtering_type == 'User-User':
 
     # Recommend items that similar users have interacted with
     recommended_items = np.zeros(num_items, dtype=int)
-    for user in similar_users:
+    for user in similar_users_indices:
         recommended_items += user_item_matrix[user]
     recommended_items = np.where(recommended_items > 0, 1, 0)
     recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]  # Exclude already interacted items
@@ -111,9 +116,13 @@ else:
     st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for Item {random_index + 1} based on similar items:</span>", unsafe_allow_html=True)
 
     # Find similar items
-    similar_items = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    similar_items_display = [f"Item{item + 1}" for item in similar_items]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {similar_items_display}</span>", unsafe_allow_html=True)
+    similar_items_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
+    similar_items_display = [f"Item{item + 1}" for item in similar_items_indices]
+    similar_items_scores = similarity_matrix[random_index][similar_items_indices]
+    
+    # Create a formatted string with items and their similarity scores
+    similar_items_with_scores = [f"{item} (similarity: {score:.2f})" for item, score in zip(similar_items_display, similar_items_scores)]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {similar_items_with_scores}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between Item {random_index + 1} and all other items.")
@@ -123,7 +132,7 @@ else:
 
     # Recommend to users who have interacted with similar items
     recommended_users = np.zeros(num_users, dtype=int)
-    for item in similar_items:
+    for item in similar_items_indices:
         recommended_users += user_item_matrix[:, item]
     recommended_users = np.where(recommended_users > 0, 1, 0)
     recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]  # Exclude already interacted users
@@ -189,8 +198,3 @@ st.markdown("""
 - **Red Dots**: No interaction between users and items.
 - **Green Dots**: Recommended interactions based on the collaborative filtering algorithm.
 """)
-
-# Display User and Item indices
-st.subheader("User and Item Indices:")
-st.write("Users:", ", ".join([f"User{i+1}" for i in range(num_users)]))
-st.write("Items:", ", ".join([f"Item{i+1}" for i in range(num_items)]))
