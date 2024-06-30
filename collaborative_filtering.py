@@ -23,7 +23,7 @@ num_items = st.sidebar.slider("Number of Items", 5, 20, 10)
 k_value = st.sidebar.slider("Value of k", 1, 10, 5)
 regenerate_data = st.sidebar.button("Regenerate Data")
 
-# Initialize or regenerate data
+# Modify the user-item matrix generation to start from 1
 if regenerate_data or 'user_item_matrix' not in st.session_state:
     np.random.seed(42)
     st.session_state.user_item_matrix = np.random.randint(0, 2, size=(num_users, num_items))
@@ -36,7 +36,9 @@ fig_user_item_heatmap = px.imshow(user_item_matrix, text_auto=True, aspect="auto
 fig_user_item_heatmap.update_layout(
     title='User-Item Matrix',
     xaxis_title='Items',
-    yaxis_title='Users'
+    yaxis_title='Users',
+    xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)]),
+    yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)])
 )
 st.sidebar.plotly_chart(fig_user_item_heatmap, use_container_width=True)
 
@@ -56,6 +58,20 @@ else:
 # Display the similarity matrix as a heatmap
 st.subheader(f"{filtering_type} Similarity Matrix")
 fig_heatmap = px.imshow(similarity_matrix, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
+if filtering_type == 'User-User':
+    fig_heatmap.update_layout(
+        xaxis_title='Users',
+        yaxis_title='Users',
+        xaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)]),
+        yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)])
+    )
+else:
+    fig_heatmap.update_layout(
+        xaxis_title='Items',
+        yaxis_title='Items',
+        xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)]),
+        yaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)])
+    )
 st.plotly_chart(fig_heatmap, use_container_width=True)
 
 # Select a random user/item to demonstrate the recommendation
@@ -65,7 +81,13 @@ if filtering_type == 'User-User':
 
     # Find similar users
     similar_users = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.write(f"Top similar users: {similar_users + 1}")
+    st.write(f"Top similar users: {[user + 1 for user in similar_users]}")
+
+    st.write("Explanation of similarity calculation:")
+    st.write(f"1. We calculate the cosine similarity between User {random_index + 1} and all other users.")
+    st.write("2. Cosine similarity measures the cosine of the angle between two vectors, ranging from -1 to 1.")
+    st.write("3. We subtract the cosine similarity from 1 to get a distance measure (0 means identical, 2 means opposite).")
+    st.write(f"4. We then sort these distances in ascending order to find the {k_value} most similar users.")
 
     # Recommend items that similar users have interacted with
     recommended_items = np.zeros(num_items, dtype=int)
@@ -73,7 +95,14 @@ if filtering_type == 'User-User':
         recommended_items += user_item_matrix[user]
     recommended_items = np.where(recommended_items > 0, 1, 0)
     recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]  # Exclude already interacted items
-    st.write(f"Recommended items: {recommended_items + 1}")
+    st.write(f"Recommended items: {[item + 1 for item in recommended_items]}")
+
+    st.write("Explanation of recommendation process:")
+    st.write(f"1. We look at the items that the {k_value} most similar users have interacted with.")
+    st.write("2. We sum up these interactions to get a score for each item.")
+    st.write("3. We convert these scores to binary (0 or 1) to get a list of all items these similar users have interacted with.")
+    st.write(f"4. We remove the items that User {random_index + 1} has already interacted with.")
+    st.write("5. The remaining items are our recommendations.")
 
 else:
     random_index = np.random.randint(num_items)
@@ -81,7 +110,13 @@ else:
 
     # Find similar items
     similar_items = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.write(f"Top similar items: {similar_items + 1}")
+    st.write(f"Top similar items: {[item + 1 for item in similar_items]}")
+
+    st.write("Explanation of similarity calculation:")
+    st.write(f"1. We calculate the cosine similarity between Item {random_index + 1} and all other items.")
+    st.write("2. Cosine similarity measures the cosine of the angle between two vectors, ranging from -1 to 1.")
+    st.write("3. We subtract the cosine similarity from 1 to get a distance measure (0 means identical, 2 means opposite).")
+    st.write(f"4. We then sort these distances in ascending order to find the {k_value} most similar items.")
 
     # Recommend to users who have interacted with similar items
     recommended_users = np.zeros(num_users, dtype=int)
@@ -89,7 +124,14 @@ else:
         recommended_users += user_item_matrix[:, item]
     recommended_users = np.where(recommended_users > 0, 1, 0)
     recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]  # Exclude already interacted users
-    st.write(f"Recommended to users: {recommended_users + 1}")
+    st.write(f"Recommended to users: {[user + 1 for user in recommended_users]}")
+
+    st.write("Explanation of recommendation process:")
+    st.write(f"1. We look at the users who have interacted with the {k_value} most similar items.")
+    st.write("2. We sum up these interactions to get a score for each user.")
+    st.write("3. We convert these scores to binary (0 or 1) to get a list of all users who have interacted with these similar items.")
+    st.write(f"4. We remove the users who have already interacted with Item {random_index + 1}.")
+    st.write("5. The remaining users are our recommendations.")
 
 # Visualize the recommendations
 fig = go.Figure()
@@ -128,8 +170,8 @@ else:
 
 fig.update_layout(
     title='Collaborative Filtering Visualization',
-    xaxis=dict(title='Items'),
-    yaxis=dict(title='Users'),
+    xaxis=dict(title='Items', tickmode='array', tickvals=list(range(1, num_items+1)), ticktext=[f'Item {i}' for i in range(1, num_items+1)]),
+    yaxis=dict(title='Users', tickmode='array', tickvals=list(range(1, num_users+1)), ticktext=[f'User {i}' for i in range(1, num_users+1)]),
     showlegend=False,
     width=800,
     height=600
