@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objs as go
 
 st.title("Cosine Similarity Explained")
-st.write("**Developed by : Venugopal Adep**)
+st.write("**Developed by : Venugopal Adep**")
 
 st.markdown(r"""
 **Cosine Similarity** is a measure of similarity between two non-zero vectors. It calculates the cosine of the angle between them, which gives a value between -1 and 1. A value of 1 means the vectors are maximally similar (pointing in the same direction), while -1 means they are maximally dissimilar (pointing in opposite directions). A value of 0 means the vectors are orthogonal/perpendicular, indicating they are completely different.
