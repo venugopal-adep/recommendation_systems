@@ -23,7 +23,7 @@ num_items = st.sidebar.slider("Number of Items", 5, 20, 10)
 k_value = st.sidebar.slider("Value of k", 1, 10, 5)
 regenerate_data = st.sidebar.button("Regenerate Data")
 
-# Modify the user-item matrix generation to start from 1
+# Initialize or regenerate data
 if regenerate_data or 'user_item_matrix' not in st.session_state:
     np.random.seed(42)
     st.session_state.user_item_matrix = np.random.randint(0, 2, size=(num_users, num_items))
@@ -77,11 +77,11 @@ st.plotly_chart(fig_heatmap, use_container_width=True)
 # Select a random user/item to demonstrate the recommendation
 if filtering_type == 'User-User':
     random_index = np.random.randint(num_users)
-    st.write(f"Recommendations for User {random_index + 1} based on similar users:")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for User {random_index + 1} based on similar users:</span>", unsafe_allow_html=True)
 
     # Find similar users
     similar_users = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.write(f"Top similar users: {[user + 1 for user in similar_users]}")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {[user + 1 for user in similar_users]}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between User {random_index + 1} and all other users.")
@@ -95,7 +95,7 @@ if filtering_type == 'User-User':
         recommended_items += user_item_matrix[user]
     recommended_items = np.where(recommended_items > 0, 1, 0)
     recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]  # Exclude already interacted items
-    st.write(f"Recommended items: {[item + 1 for item in recommended_items]}")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended items: {[item + 1 for item in recommended_items]}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of recommendation process:")
     st.write(f"1. We look at the items that the {k_value} most similar users have interacted with.")
@@ -106,11 +106,11 @@ if filtering_type == 'User-User':
 
 else:
     random_index = np.random.randint(num_items)
-    st.write(f"Recommendations for Item {random_index + 1} based on similar items:")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for Item {random_index + 1} based on similar items:</span>", unsafe_allow_html=True)
 
     # Find similar items
     similar_items = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.write(f"Top similar items: {[item + 1 for item in similar_items]}")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {[item + 1 for item in similar_items]}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between Item {random_index + 1} and all other items.")
@@ -124,7 +124,7 @@ else:
         recommended_users += user_item_matrix[:, item]
     recommended_users = np.where(recommended_users > 0, 1, 0)
     recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]  # Exclude already interacted users
-    st.write(f"Recommended to users: {[user + 1 for user in recommended_users]}")
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended to users: {[user + 1 for user in recommended_users]}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of recommendation process:")
     st.write(f"1. We look at the users who have interacted with the {k_value} most similar items.")
@@ -185,3 +185,8 @@ st.markdown("""
 - **Red Dots**: No interaction between users and items.
 - **Green Dots**: Recommended interactions based on the collaborative filtering algorithm.
 """)
+
+# Display User and Item indices
+st.subheader("User and Item Indices:")
+st.write("Users:", ", ".join([f"User{i+1}" for i in range(num_users)]))
+st.write("Items:", ", ".join([f"Item{i+1}" for i in range(num_items)]))
