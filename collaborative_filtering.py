@@ -81,7 +81,8 @@ if filtering_type == 'User-User':
 
     # Find similar users
     similar_users = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {[user + 1 for user in similar_users]}</span>", unsafe_allow_html=True)
+    similar_users_display = [f"User{user + 1}" for user in similar_users]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {similar_users_display}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between User {random_index + 1} and all other users.")
@@ -95,7 +96,8 @@ if filtering_type == 'User-User':
         recommended_items += user_item_matrix[user]
     recommended_items = np.where(recommended_items > 0, 1, 0)
     recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]  # Exclude already interacted items
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended items: {[item + 1 for item in recommended_items]}</span>", unsafe_allow_html=True)
+    recommended_items_display = [f"Item{item + 1}" for item in recommended_items]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended items: {recommended_items_display}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of recommendation process:")
     st.write(f"1. We look at the items that the {k_value} most similar users have interacted with.")
@@ -110,7 +112,8 @@ else:
 
     # Find similar items
     similar_items = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {[item + 1 for item in similar_items]}</span>", unsafe_allow_html=True)
+    similar_items_display = [f"Item{item + 1}" for item in similar_items]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {similar_items_display}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of similarity calculation:")
     st.write(f"1. We calculate the cosine similarity between Item {random_index + 1} and all other items.")
@@ -124,7 +127,8 @@ else:
         recommended_users += user_item_matrix[:, item]
     recommended_users = np.where(recommended_users > 0, 1, 0)
     recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]  # Exclude already interacted users
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended to users: {[user + 1 for user in recommended_users]}</span>", unsafe_allow_html=True)
+    recommended_users_display = [f"User{user + 1}" for user in recommended_users]
+    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended to users: {recommended_users_display}</span>", unsafe_allow_html=True)
 
     st.write("Explanation of recommendation process:")
     st.write(f"1. We look at the users who have interacted with the {k_value} most similar items.")
