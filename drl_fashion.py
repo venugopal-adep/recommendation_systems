@@ -7,6 +7,8 @@ from collections import Counter
 import altair as alt
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import requests
+from io import BytesIO
 
 # Set page configuration
 st.set_page_config(page_title="Amazon Fashion Insights", page_icon="👗", layout="wide")
@@ -37,14 +39,28 @@ st.markdown("""
 # Load the data
 @st.cache_data
 def load_data():
-    data = []
-    with gzip.open('AMAZON_FASHION.json.gz') as f:
-        for l in f:
-            data.append(json.loads(l.strip()))
+    url = "https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_v2/categoryFiles/AMAZON_FASHION.json.gz"
+    
+    # Download the file
+    response = requests.get(url)
+    if response.status_code != 200:
+        st.error(f"Failed to download the file. Status code: {response.status_code}")
+        return pd.DataFrame()
+
+    # Read the gzipped JSON data
+    with gzip.open(BytesIO(response.content)) as f:
+        data = [json.loads(line) for line in f]
+
     return pd.DataFrame(data)
 
 # Load and preprocess the data
-df = load_data()
+with st.spinner("Loading data... This may take a few moments."):
+    df = load_data()
+
+if df.empty:
+    st.error("Failed to load the data. Please check your internet connection and try again.")
+    st.stop()
+
 df = df[['overall', 'verified', 'reviewerID', 'asin', 'style', 'reviewerName', 'reviewText', 'summary', 'reviewTime']]
 df['reviewTime'] = pd.to_datetime(df['reviewTime'])
 filtered_df = df[(df['verified'] == True) & (~df['overall'].isnull())]
