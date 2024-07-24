@@ -7,6 +7,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import requests
 from io import BytesIO
+from wordcloud import WordCloud  # Add this line
 
 # Set page configuration
 st.set_page_config(page_title="Amazon Fashion Insights", page_icon="👗", layout="wide")
