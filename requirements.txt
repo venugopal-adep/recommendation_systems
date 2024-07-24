@@ -7,3 +7,4 @@ surprise
 matplotlib
 altair
 wordcloud
+spacy
