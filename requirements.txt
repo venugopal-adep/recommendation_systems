@@ -5,3 +5,8 @@ plotly
 scikit-learn
 surprise
 matplotlib
+json
+gzip
+collections
+altair
+wordcloud
