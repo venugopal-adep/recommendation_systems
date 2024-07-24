@@ -5,7 +5,6 @@ plotly
 scikit-learn
 surprise
 matplotlib
-gzip
 collections
 altair
 wordcloud
