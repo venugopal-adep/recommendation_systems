@@ -6,21 +6,25 @@ from surprise import Reader, Dataset, SVD, KNNBasic, CoClustering
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-# Custom CSS to make the layout wider and more visually appealing
+# Custom CSS for full width and aesthetic colors
 st.markdown("""
     <style>
         .reportview-container .main .block-container {
-            max-width: 95%;
+            max-width: 100%;
             padding-top: 1rem;
             padding-right: 1rem;
             padding-left: 1rem;
             padding-bottom: 1rem;
         }
+        .stApp {
+            background-color: #1E1E1E;
+            color: #E0E0E0;
+        }
         .stSelectbox [data-baseweb="select"] {
-            background-color: #4a4a4a;
+            background-color: #2C2C2C;
         }
         .stSelectbox [data-baseweb="select"] > div {
-            color: white;
+            color: #E0E0E0;
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 24px;
@@ -28,7 +32,7 @@ st.markdown("""
         .stTabs [data-baseweb="tab"] {
             height: 50px;
             white-space: pre-wrap;
-            background-color: #0E1117;
+            background-color: #2C2C2C;
             border-radius: 4px 4px 0px 0px;
             gap: 1px;
             padding-top: 10px;
@@ -36,18 +40,22 @@ st.markdown("""
             padding-left: 20px;
             padding-right: 20px;
             font-weight: bold;
+            color: #E0E0E0;
         }
         .stTabs [aria-selected="true"] {
-            background-color: #262730;
+            background-color: #4A4A4A;
         }
         .stButton>button {
             width: 100%;
-            background-color: #4CAF50;
+            background-color: #FF4B4B;
             color: white;
             font-weight: bold;
         }
         h1, h2, h3 {
-            color: #4CAF50;
+            color: #FF4B4B;
+        }
+        .stDataFrame {
+            background-color: #2C2C2C;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -124,7 +132,8 @@ def plot_svd_factors(model):
     fig = px.scatter_3d(x=model.pu[:, 0], y=model.pu[:, 1], z=model.pu[:, 2],
                         labels={'x': 'Factor 1', 'y': 'Factor 2', 'z': 'Factor 3'},
                         title='SVD Factors')
-    fig.update_layout(scene=dict(xaxis_title='Factor 1', yaxis_title='Factor 2', zaxis_title='Factor 3'))
+    fig.update_layout(scene=dict(xaxis_title='Factor 1', yaxis_title='Factor 2', zaxis_title='Factor 3'),
+                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig)
 
 def plot_knn_similarity(model, user_id):
@@ -136,12 +145,18 @@ def plot_knn_similarity(model, user_id):
     user_similarities = user_similarities.merge(ratings, on='userId', how='inner')
     user_similarities = user_similarities.merge(movies[['movieId', 'title']], on='movieId', how='inner')
 
-    plt.figure(figsize=(8, 6))
-    plt.hist(user_similarities['rating'], bins=20)
-    plt.xlabel('Rating')
-    plt.ylabel('Count')
-    plt.title(f'Rating Distribution of Top 10 Similar Users to User {user_id}')
-    st.pyplot(plt)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.hist(user_similarities['rating'], bins=20, color='#FF4B4B')
+    ax.set_xlabel('Rating')
+    ax.set_ylabel('Count')
+    ax.set_title(f'Rating Distribution of Top 10 Similar Users to User {user_id}')
+    ax.set_facecolor('#1E1E1E')
+    fig.patch.set_facecolor('#1E1E1E')
+    ax.tick_params(colors='#E0E0E0')
+    ax.xaxis.label.set_color('#E0E0E0')
+    ax.yaxis.label.set_color('#E0E0E0')
+    ax.title.set_color('#E0E0E0')
+    st.pyplot(fig)
 
 def plot_coclustering_clusters(model):
     user_labels = [model.user_labels_[model.trainset.to_inner_uid(uid)] for uid in model.trainset.all_users()]
@@ -150,6 +165,7 @@ def plot_coclustering_clusters(model):
     df = pd.DataFrame({'User Cluster': user_labels, 'Item Cluster': item_labels})
 
     fig = px.scatter(df, x='User Cluster', y='Item Cluster', title='Co-Clustering Clusters')
+    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig)
 
 # Streamlit interface
