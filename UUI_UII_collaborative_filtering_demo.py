@@ -7,7 +7,7 @@ pygame.init()
 # Set up the display
 WIDTH, HEIGHT = 1600, 900
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Memory-Based Collaborative Filtering Demo")
+pygame.display.set_caption("Collaborative Filtering Demo")
 
 # Colors
 BACKGROUND = (230, 230, 250)  # Lavender
