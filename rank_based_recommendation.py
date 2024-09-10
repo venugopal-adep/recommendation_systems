@@ -154,13 +154,36 @@ def plot_knn_similarity(model, user_id):
     st.pyplot(fig)
 
 def plot_coclustering_clusters(model):
-    user_labels = [model.user_labels_[model.trainset.to_inner_uid(uid)] for uid in model.trainset.all_users()]
-    item_labels = [model.item_labels_[model.trainset.to_inner_iid(iid)] for iid in model.trainset.all_items()]
+    n_users = len(model.trainset.all_users())
+    n_items = len(model.trainset.all_items())
+    n_user_clusters = model.n_cltr_u
+    n_item_clusters = model.n_cltr_i
 
-    df = pd.DataFrame({'User Cluster': user_labels, 'Item Cluster': item_labels})
+    user_clusters = [model.user_clusters_[model.trainset.to_inner_uid(uid)] for uid in model.trainset.all_users()]
+    item_clusters = [model.item_clusters_[model.trainset.to_inner_iid(iid)] for iid in model.trainset.all_items()]
 
-    fig = px.scatter(df, x='User Cluster', y='Item Cluster', title='Co-Clustering Clusters')
-    st.plotly_chart(fig, use_container_width=True)
+    user_cluster_counts = pd.Series(user_clusters).value_counts().sort_index()
+    item_cluster_counts = pd.Series(item_clusters).value_counts().sort_index()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    ax1.bar(user_cluster_counts.index, user_cluster_counts.values)
+    ax1.set_title('User Cluster Distribution')
+    ax1.set_xlabel('User Cluster')
+    ax1.set_ylabel('Number of Users')
+
+    ax2.bar(item_cluster_counts.index, item_cluster_counts.values)
+    ax2.set_title('Item Cluster Distribution')
+    ax2.set_xlabel('Item Cluster')
+    ax2.set_ylabel('Number of Items')
+
+    plt.tight_layout()
+    st.pyplot(fig)
+
+    st.write(f"Number of users: {n_users}")
+    st.write(f"Number of items: {n_items}")
+    st.write(f"Number of user clusters: {n_user_clusters}")
+    st.write(f"Number of item clusters: {n_item_clusters}")
 
 # Streamlit interface
 def main():
