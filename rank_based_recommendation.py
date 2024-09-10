@@ -188,6 +188,7 @@ def plot_coclustering_clusters(model):
 # Streamlit interface
 def main():
     st.title('🎬 Movie Recommendation System')
+    st.write('**Developed by : Venugopal Adep**')
 
     tab1, tab2, tab3 = st.tabs(["🧠 Learn", "🔍 Explore", "🎯 Quiz"])
 
