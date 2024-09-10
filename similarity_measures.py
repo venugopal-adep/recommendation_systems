@@ -52,11 +52,9 @@ st.markdown("""
 def load_data():
     movies = pd.read_csv('movielens/movies.csv')
     ratings = pd.read_csv('movielens/ratings.csv')
-    tags = pd.read_csv('movielens/tags.csv')
-    links = pd.read_csv('movielens/links.csv')
-    return movies, ratings, tags, links
+    return movies, ratings
 
-movies, ratings, tags, links = load_data()
+movies, ratings = load_data()
 
 # Create user-item matrix
 user_item_matrix = ratings.pivot(index='userId', columns='movieId', values='rating').fillna(0)
@@ -154,33 +152,47 @@ with tab2:
             st.write("Euclidean Distance measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similar preferences.")
             metric = "Euclidean Distance"
 
-        # Display the sparse user-item matrix visualization
-        st.write("### User-Item Matrix (Sparse Matrix)")
-        sparse_matrix = user_item_matrix.loc[[user1_id, user2_id]]
-        fig = px.imshow(sparse_matrix, aspect='auto', color_continuous_scale='YlGnBu', labels={'color':'Rating'})
-        st.plotly_chart(fig, use_container_width=True)
+    # Display ratings in visual format
+    common_movies = set(user1_ratings.keys()).intersection(set(user2_ratings.keys()))
+    ratings_data = [(movies[movies['movieId'] == movie]['title'].values[0], user1_ratings[movie], user2_ratings[movie]) for movie in common_movies]
+    ratings_df = pd.DataFrame(ratings_data, columns=['Movie', 'User 1 Rating', 'User 2 Rating'])
 
-        # Display ratings in visual format
-        common_movies = set(user1_ratings.keys()).intersection(set(user2_ratings.keys()))
-        ratings_data = [(movies[movies['movieId'] == movie]['title'].values[0], user1_ratings[movie], user2_ratings[movie]) for movie in common_movies]
-        ratings_df = pd.DataFrame(ratings_data, columns=['Movie', 'User 1 Rating', 'User 2 Rating'])
+    # Improved visualization
+    st.write("### Comparison of User Ratings")
+    fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', 
+                     text='Movie', title=f'{metric}: User {user1_id} vs User {user2_id}',
+                     labels={'User 1 Rating': f'User {user1_id} Rating', 'User 2 Rating': f'User {user2_id} Rating'},
+                     color='Movie', hover_data=['Movie'])
 
-        # Interactive visualization for Cosine Similarity and Pearson Correlation
-        if concept in ['Cosine Similarity', 'Pearson Correlation']:
-            st.write("### Scatter Plot of Common Movie Ratings")
-            fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', text='Movie', title=f'{metric} Scatter Plot', 
-                             labels={'User 1 Rating': 'User 1 Rating', 'User 2 Rating': 'User 2 Rating'},
-                             size_max=10, opacity=0.7, color_discrete_sequence=['#4A90E2'])
-            fig.update_traces(marker=dict(size=12, line=dict(width=2, color='#2C3E50')), selector=dict(mode='markers'))
-            fig.update_layout(autosize=False, width=800, height=600, hovermode='closest', plot_bgcolor='rgba(240,242,246,0.8)')
-            st.plotly_chart(fig, use_container_width=True)
+    fig.update_traces(textposition='top center', marker=dict(size=10))
+    fig.update_layout(
+        height=600, 
+        xaxis=dict(range=[0, 5.5]), 
+        yaxis=dict(range=[0, 5.5]),
+        xaxis_title=f"User {user1_id} Rating",
+        yaxis_title=f"User {user2_id} Rating",
+        showlegend=False
+    )
 
-        # Interactive visualization for Euclidean Distance
-        elif concept == 'Euclidean Distance':
-            fig = px.line(ratings_df, x='Movie', y=['User 1 Rating', 'User 2 Rating'], title=f'{metric} Line Plot',
-                          labels={'value': 'Rating', 'variable': 'User'}, markers=True, color_discrete_sequence=['#4A90E2', '#2ECC71'])
-            fig.update_layout(autosize=False, width=800, height=600, plot_bgcolor='rgba(240,242,246,0.8)')
-            st.plotly_chart(fig, use_container_width=True)
+    # Add reference line
+    fig.add_shape(type="line", line=dict(dash="dash", color="gray"),
+                  x0=0, y0=0, x1=5.5, y1=5.5)
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Explanation of the plot
+    st.write("""
+    **Understanding the Plot:**
+    - Each point represents a movie that both users have rated.
+    - The x-axis shows ratings from User 1, while the y-axis shows ratings from User 2.
+    - Points closer to the dashed line indicate movies where both users gave similar ratings.
+    - Points far from the line show movies where users disagreed.
+    - The color of each point represents a unique movie (hover to see the title).
+
+    **Interpreting Similarity:**
+    - For Cosine Similarity and Pearson Correlation: More points close to the line indicate higher similarity.
+    - For Euclidean Distance: More spread out points indicate larger distance (less similarity).
+    """)
 
 with tab3:
     st.header("Test Your Knowledge")
