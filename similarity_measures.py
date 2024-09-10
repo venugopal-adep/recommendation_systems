@@ -12,6 +12,10 @@ st.set_page_config(page_title="Similarity Measures Explained", layout="wide")
 # Custom CSS for aesthetics
 st.markdown("""
 <style>
+    body {
+        color: #1E1E1E;
+        background-color: #F0F2F6;
+    }
     .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
         font-size: 24px;
     }
@@ -21,14 +25,24 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] {
         height: 50px;
         white-space: pre-wrap;
-        background-color: #f0f2f6;
+        background-color: #E1E5EA;
         border-radius: 4px;
-        color: #31333F;
+        color: #1E1E1E;
         font-weight: 400;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #31333F;
-        color: #ffffff;
+        background-color: #4A90E2;
+        color: #FFFFFF;
+    }
+    .stButton>button {
+        background-color: #4A90E2;
+        color: #FFFFFF;
+    }
+    .stSelectbox [data-baseweb="select"] {
+        background-color: #FFFFFF;
+    }
+    .stRadio [data-baseweb="radio"] {
+        background-color: #FFFFFF;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -55,32 +69,36 @@ tab1, tab2, tab3 = st.tabs(["Learn", "Explore", "Quiz"])
 
 with tab1:
     st.header("Understanding Similarity Measures")
-    st.write("""
-    Similarity measures are used in recommender systems to quantify how similar two users or items are. Here are three common measures:
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.write("""
+        Similarity measures are used in recommender systems to quantify how similar two users or items are. Here are three common measures:
 
-    1. **Cosine Similarity**: Measures the cosine of the angle between two vectors. It ranges from -1 to 1, where 1 means exactly similar, 0 means no similarity, and -1 means exactly opposite.
+        1. **Cosine Similarity**: Measures the cosine of the angle between two vectors. It ranges from -1 to 1, where 1 means exactly similar, 0 means no similarity, and -1 means exactly opposite.
 
-    2. **Pearson Correlation**: Measures the linear correlation between two variables. It ranges from -1 to 1, where 1 is total positive correlation, 0 is no correlation, and -1 is total negative correlation.
+        2. **Pearson Correlation**: Measures the linear correlation between two variables. It ranges from -1 to 1, where 1 is total positive correlation, 0 is no correlation, and -1 is total negative correlation.
 
-    3. **Euclidean Distance**: Measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similarity.
+        3. **Euclidean Distance**: Measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similarity.
 
-    These measures help in finding users with similar preferences or items with similar characteristics, which is crucial for making recommendations.
-    """)
-
-    st.image('movielens/image.png', caption="Similarity Measures Overview", use_column_width=True)
+        These measures help in finding users with similar preferences or items with similar characteristics, which is crucial for making recommendations.
+        """)
+    with col2:
+        st.image('movielens/image.png', caption="Similarity Measures Overview", use_column_width=True)
 
 with tab2:
     st.header("Explore Similarity Measures")
     
-    # Sidebar options
-    concept = st.radio(
-        "Select a Similarity Measure",
-        ('Cosine Similarity', 'Pearson Correlation', 'Euclidean Distance')
-    )
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Input elements
+        concept = st.radio(
+            "Select a Similarity Measure",
+            ('Cosine Similarity', 'Pearson Correlation', 'Euclidean Distance')
+        )
 
-    # Select two users for demonstration
-    user1_id = st.selectbox('Select User 1', user_item_matrix.index)
-    user2_id = st.selectbox('Select User 2', user_item_matrix.index)
+        user1_id = st.selectbox('Select User 1', user_item_matrix.index)
+        user2_id = st.selectbox('Select User 2', user_item_matrix.index)
 
     user1_ratings = user_item_matrix.loc[user1_id].to_dict()
     user2_ratings = user_item_matrix.loc[user2_id].to_dict()
@@ -118,50 +136,51 @@ with tab2:
         
         return euclidean(user1_vector, user2_vector)
 
-    # Calculate similarity/distance based on selected concept
-    if concept == 'Cosine Similarity':
-        similarity = calculate_cosine_similarity(user1_ratings, user2_ratings)
-        st.write(f"**Cosine Similarity** between User {user1_id} and User {user2_id} is: {similarity:.2f}")
-        st.write("Cosine Similarity measures the cosine of the angle between two vectors. A value of 1 indicates that the users have identical preferences, while a value of 0 indicates no similarity.")
-        metric = "Cosine Similarity"
-    elif concept == 'Pearson Correlation':
-        correlation = calculate_pearson_correlation(user1_ratings, user2_ratings)
-        st.write(f"**Pearson Correlation** between User {user1_id} and User {user2_id} is: {correlation:.2f}")
-        st.write("Pearson Correlation measures the linear correlation between two sets of data. A value of 1 indicates a perfect positive correlation, -1 indicates a perfect negative correlation, and 0 indicates no correlation.")
-        metric = "Pearson Correlation"
-    elif concept == 'Euclidean Distance':
-        distance = calculate_euclidean_distance(user1_ratings, user2_ratings)
-        st.write(f"**Euclidean Distance** between User {user1_id} and User {user2_id} is: {distance:.2f}")
-        st.write("Euclidean Distance measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similar preferences.")
-        metric = "Euclidean Distance"
+    with col2:
+        # Calculate similarity/distance based on selected concept
+        if concept == 'Cosine Similarity':
+            similarity = calculate_cosine_similarity(user1_ratings, user2_ratings)
+            st.write(f"**Cosine Similarity** between User {user1_id} and User {user2_id} is: {similarity:.2f}")
+            st.write("Cosine Similarity measures the cosine of the angle between two vectors. A value of 1 indicates that the users have identical preferences, while a value of 0 indicates no similarity.")
+            metric = "Cosine Similarity"
+        elif concept == 'Pearson Correlation':
+            correlation = calculate_pearson_correlation(user1_ratings, user2_ratings)
+            st.write(f"**Pearson Correlation** between User {user1_id} and User {user2_id} is: {correlation:.2f}")
+            st.write("Pearson Correlation measures the linear correlation between two sets of data. A value of 1 indicates a perfect positive correlation, -1 indicates a perfect negative correlation, and 0 indicates no correlation.")
+            metric = "Pearson Correlation"
+        elif concept == 'Euclidean Distance':
+            distance = calculate_euclidean_distance(user1_ratings, user2_ratings)
+            st.write(f"**Euclidean Distance** between User {user1_id} and User {user2_id} is: {distance:.2f}")
+            st.write("Euclidean Distance measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similar preferences.")
+            metric = "Euclidean Distance"
 
-    # Display the sparse user-item matrix visualization
-    st.write("### User-Item Matrix (Sparse Matrix)")
-    sparse_matrix = user_item_matrix.loc[[user1_id, user2_id]]
-    fig = px.imshow(sparse_matrix, aspect='auto', color_continuous_scale='Blues', labels={'color':'Rating'})
-    st.plotly_chart(fig)
+        # Display the sparse user-item matrix visualization
+        st.write("### User-Item Matrix (Sparse Matrix)")
+        sparse_matrix = user_item_matrix.loc[[user1_id, user2_id]]
+        fig = px.imshow(sparse_matrix, aspect='auto', color_continuous_scale='YlGnBu', labels={'color':'Rating'})
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Display ratings in visual format
-    common_movies = set(user1_ratings.keys()).intersection(set(user2_ratings.keys()))
-    ratings_data = [(movies[movies['movieId'] == movie]['title'].values[0], user1_ratings[movie], user2_ratings[movie]) for movie in common_movies]
-    ratings_df = pd.DataFrame(ratings_data, columns=['Movie', 'User 1 Rating', 'User 2 Rating'])
+        # Display ratings in visual format
+        common_movies = set(user1_ratings.keys()).intersection(set(user2_ratings.keys()))
+        ratings_data = [(movies[movies['movieId'] == movie]['title'].values[0], user1_ratings[movie], user2_ratings[movie]) for movie in common_movies]
+        ratings_df = pd.DataFrame(ratings_data, columns=['Movie', 'User 1 Rating', 'User 2 Rating'])
 
-    # Interactive visualization for Cosine Similarity and Pearson Correlation
-    if concept in ['Cosine Similarity', 'Pearson Correlation']:
-        st.write("### Scatter Plot of Common Movie Ratings")
-        fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', text='Movie', title=f'{metric} Scatter Plot', 
-                         labels={'User 1 Rating': 'User 1 Rating', 'User 2 Rating': 'User 2 Rating'},
-                         size_max=10, opacity=0.7)
-        fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-        fig.update_layout(autosize=False, width=800, height=600, hovermode='closest')
-        st.plotly_chart(fig)
+        # Interactive visualization for Cosine Similarity and Pearson Correlation
+        if concept in ['Cosine Similarity', 'Pearson Correlation']:
+            st.write("### Scatter Plot of Common Movie Ratings")
+            fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', text='Movie', title=f'{metric} Scatter Plot', 
+                             labels={'User 1 Rating': 'User 1 Rating', 'User 2 Rating': 'User 2 Rating'},
+                             size_max=10, opacity=0.7, color_discrete_sequence=['#4A90E2'])
+            fig.update_traces(marker=dict(size=12, line=dict(width=2, color='#2C3E50')), selector=dict(mode='markers'))
+            fig.update_layout(autosize=False, width=800, height=600, hovermode='closest', plot_bgcolor='rgba(240,242,246,0.8)')
+            st.plotly_chart(fig, use_container_width=True)
 
-    # Interactive visualization for Euclidean Distance
-    elif concept == 'Euclidean Distance':
-        fig = px.line(ratings_df, x='Movie', y=['User 1 Rating', 'User 2 Rating'], title=f'{metric} Line Plot',
-                      labels={'value': 'Rating', 'variable': 'User'}, markers=True)
-        fig.update_layout(autosize=False, width=800, height=600)
-        st.plotly_chart(fig)
+        # Interactive visualization for Euclidean Distance
+        elif concept == 'Euclidean Distance':
+            fig = px.line(ratings_df, x='Movie', y=['User 1 Rating', 'User 2 Rating'], title=f'{metric} Line Plot',
+                          labels={'value': 'Rating', 'variable': 'User'}, markers=True, color_discrete_sequence=['#4A90E2', '#2ECC71'])
+            fig.update_layout(autosize=False, width=800, height=600, plot_bgcolor='rgba(240,242,246,0.8)')
+            st.plotly_chart(fig, use_container_width=True)
 
 with tab3:
     st.header("Test Your Knowledge")
