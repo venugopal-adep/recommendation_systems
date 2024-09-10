@@ -27,21 +27,25 @@ def pearson_correlation(v1, v2):
 def euclidean_distance(v1, v2):
     return sum((x - y) ** 2 for x, y in zip(v1, v2)) ** 0.5
 
+st.set_page_config(layout="wide")
+
 st.title("Choosing the Right Similarity Measure: An Interactive Guide")
 st.markdown(
     """
-Similarity measures are used in countless applications, from recommending movies to comparing user behavior. 
-
-**But which similarity measure should you use?**  It depends on what you want to emphasize in your comparison.  
-
-Let's explore some common measures and when they shine.
-"""
+    Similarity measures are crucial in various applications, from recommending movies to comparing user behavior. 
+    This interactive guide explores common measures and their ideal use cases.
+    """
 )
 
-# Interactive Example Section
-with st.expander("Interactive Example: Shopping Lists"):
+st.markdown("---")
 
-    st.subheader("Grocery Shopping: Cosine Similarity")
+st.header("📊 Interactive Examples")
+
+# Interactive Example Section
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("🛒 1. Grocery Shopping: Cosine Similarity")
     st.write("Imagine two shoppers at a grocery store. We represent their purchases as vectors, where each item is a dimension and its value is the quantity purchased.")
 
     list1 = st.multiselect("Shopper A's List", ["Apples", "Bananas", "Oranges"])
@@ -56,11 +60,12 @@ with st.expander("Interactive Example: Shopping Lists"):
         quantity = st.number_input(f"Quantity of {item} for Shopper B", min_value=0, value=1)
         list2_quantities.append(quantity)
 
-    # Convert lists to vectors with zero padding for missing items (more efficient)
+    # Convert lists to vectors with zero padding for missing items
     all_items = sorted(set(list1 + list2))
     vec1 = [list1_quantities[list1.index(item)] if item in list1 else 0 for item in all_items]
     vec2 = [list2_quantities[list2.index(item)] if item in list2 else 0 for item in all_items]
 
+with col2:
     # Plot vectors and cosine similarity
     fig = px.scatter(x=[0, vec1[0]], y=[0, vec1[1]], title="Shopper A vs Shopper B")
     fig.add_scatter(x=[0, vec2[0]], y=[0, vec2[1]], name="Shopper B")
@@ -79,20 +84,23 @@ with st.expander("Interactive Example: Shopping Lists"):
         )
     st.plotly_chart(fig)
 
-
     st.write(
         f"**Cosine Similarity:** {cosine_similarity(vec1, vec2):.2f}"
     )
-    st.write(
+    st.info(
         """
-        Cosine similarity focuses on the **angle between vectors**, ignoring the magnitude (quantity).  
+        💡 Cosine similarity focuses on the **angle between vectors**, ignoring the magnitude (quantity).  
         Even if one shopper bought very little, as long as they bought similar items, the cosine similarity will be high. 
         """
     )
 
+st.markdown("---")
+
 # Movie Rating Example
-with st.expander("Interactive Example: Movie Ratings"):
-    st.subheader("Movie Ratings: Pearson Correlation")
+col3, col4 = st.columns(2)
+
+with col3:
+    st.subheader("🎬 2. Movie Ratings: Pearson Correlation")
     st.write("Imagine you're comparing movie ratings between two friends.")
 
     movies = ["Movie A", "Movie B", "Movie C", "Movie D"]
@@ -109,6 +117,7 @@ with st.expander("Interactive Example: Movie Ratings"):
         rating = st.number_input(f"Person 2 rating for {movie}:", min_value=1, max_value=5, value=3)
         ratings_person2.append(rating)
 
+with col4:
     # Visualization with Plotly
     fig = px.scatter(
         x=ratings_person1,
@@ -126,13 +135,17 @@ with st.expander("Interactive Example: Movie Ratings"):
     st.write("Pearson Correlation:", pearson_corr_movies)
     st.write("Euclidean Distance (Dissimilarity):", euclidean_dist_movies)
 
-    st.write(
-        "In this case, **Pearson correlation** is often the preferred similarity measure for movie ratings as it accounts for linear relationships and the overall trend in preferences."
+    st.info(
+        "💡 In this case, **Pearson correlation** is often the preferred similarity measure for movie ratings as it accounts for linear relationships and the overall trend in preferences."
     )
 
+st.markdown("---")
+
 # House Size Example
-with st.expander("Interactive Example: House Sizes"):
-    st.subheader("House Sizes: Euclidean Distance")
+col5, col6 = st.columns(2)
+
+with col5:
+    st.subheader("🏠 3. House Sizes: Euclidean Distance")
     st.write("Imagine you're comparing the size of houses based on area and number of bedrooms.")
 
     house_a_area = st.slider("House A Area (sq ft)", 500, 5000, 1500)
@@ -140,17 +153,31 @@ with st.expander("Interactive Example: House Sizes"):
     house_a_bedrooms = st.slider("House A Bedrooms", 1, 10, 3)
     house_b_bedrooms = st.slider("House B Bedrooms", 1, 10, 4)
 
+with col6:
     # Plot houses and Euclidean distance
-    fig = px.scatter(x=[house_a_area], y=[house_a_bedrooms], title="House A vs House B")
-    fig.add_scatter(x=[house_b_area], y=[house_b_bedrooms], name="House B")
+    fig = px.scatter(x=[house_a_area, house_b_area], y=[house_a_bedrooms, house_b_bedrooms], 
+                     text=['House A', 'House B'], title="House A vs House B")
+    fig.update_traces(textposition='top center')
     st.plotly_chart(fig)
 
     st.write(
         f"**Euclidean Distance (Dissimilarity):** {euclidean_distance([house_a_area, house_a_bedrooms], [house_b_area, house_b_bedrooms]):.2f}"
     )
-    st.write(
+    st.info(
         """
-        Euclidean distance calculates the straight-line distance between points, 
+        💡 Euclidean distance calculates the straight-line distance between points, 
         considering both the magnitude (area, bedrooms) and direction.
         """
     )
+
+st.markdown("---")
+
+st.header("🧠 Key Takeaways")
+
+st.markdown("""
+1. **Cosine Similarity**: Best for comparing direction, ignoring magnitude.
+2. **Pearson Correlation**: Ideal for detecting linear relationships and trends.
+3. **Euclidean Distance**: Useful when both magnitude and direction matter.
+
+Choose the similarity measure that best aligns with your specific comparison needs!
+""")
