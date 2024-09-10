@@ -6,11 +6,21 @@ from surprise import Reader, Dataset, SVD, KNNBasic, CoClustering
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-# Custom CSS to make the layout wider
+# Custom CSS to make the layout wider and more visually appealing
 st.markdown("""
     <style>
         .reportview-container .main .block-container {
             max-width: 95%;
+            padding-top: 1rem;
+            padding-right: 1rem;
+            padding-left: 1rem;
+            padding-bottom: 1rem;
+        }
+        .stSelectbox [data-baseweb="select"] {
+            background-color: #4a4a4a;
+        }
+        .stSelectbox [data-baseweb="select"] > div {
+            color: white;
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 24px;
@@ -25,9 +35,19 @@ st.markdown("""
             padding-bottom: 10px;
             padding-left: 20px;
             padding-right: 20px;
+            font-weight: bold;
         }
         .stTabs [aria-selected="true"] {
             background-color: #262730;
+        }
+        .stButton>button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        h1, h2, h3 {
+            color: #4CAF50;
         }
     </style>
 """, unsafe_allow_html=True)
