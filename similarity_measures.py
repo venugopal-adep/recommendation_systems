@@ -61,6 +61,7 @@ user_item_matrix = ratings.pivot(index='userId', columns='movieId', values='rati
 
 # Title
 st.title("Similarity Measures Explained")
+st.write('**Developed by : Venugopal Adep**')
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Learn", "Explore", "Quiz"])
