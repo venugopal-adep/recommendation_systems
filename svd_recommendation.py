@@ -3,6 +3,11 @@ import numpy as np
 import plotly.express as px
 from scipy.linalg import svd
 
+st.set_page_config(layout="wide")
+
+# Custom color scheme
+color_scale = 'Viridis'
+
 st.title("Matrix Factorization (SVD) Explained")
 
 st.markdown(r"""
@@ -38,77 +43,61 @@ user_item_matrix = st.session_state.user_item_matrix
 U, sigma, VT = svd(user_item_matrix, full_matrices=False)
 Sigma = np.diag(sigma)
 
-# Display the user-item matrix as a heatmap
-st.subheader("User-Item Matrix")
-fig_user_item_heatmap = px.imshow(user_item_matrix, text_auto=True, aspect="auto", color_continuous_scale='Blues')
-fig_user_item_heatmap.update_layout(
-    title='User-Item Matrix',
-    xaxis_title='Items',
-    yaxis_title='Users'
-)
-st.plotly_chart(fig_user_item_heatmap, use_container_width=True)
+# Create tabs
+tab1, tab2, tab3 = st.tabs(["Original Matrix", "Decomposed Matrices", "Reconstructed Matrix"])
 
-# Display U, Sigma, and VT matrices
-st.subheader("Decomposed Matrices")
-
-# Display U matrix
-st.markdown("**U Matrix (User-Latent Features):**")
-fig_U = px.imshow(U, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-fig_U.update_layout(
-    title='U Matrix',
-    xaxis_title='Latent Features',
-    yaxis_title='Users'
-)
-st.plotly_chart(fig_U, use_container_width=True)
-
-# Display Sigma matrix
-st.markdown("**Sigma Matrix (Singular Values):**")
-fig_Sigma = px.imshow(Sigma, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-fig_Sigma.update_layout(
-    title='Sigma Matrix',
-    xaxis_title='Latent Features',
-    yaxis_title='Latent Features'
-)
-st.plotly_chart(fig_Sigma, use_container_width=True)
-
-# Display VT matrix
-st.markdown("**VT Matrix (Item-Latent Features):**")
-fig_VT = px.imshow(VT, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-fig_VT.update_layout(
-    title='VT Matrix',
-    xaxis_title='Items',
-    yaxis_title='Latent Features'
-)
-st.plotly_chart(fig_VT, use_container_width=True)
-
-# Example: Reconstructing the original matrix
-st.subheader("Reconstructed Matrix Example")
-k = num_latent_features
-reconstructed_matrix = np.dot(U[:, :k], np.dot(Sigma[:k, :k], VT[:k, :]))
-
-# Display original and reconstructed matrices side by side
-st.markdown(f"Using top {k} latent features to reconstruct the original matrix:")
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("**Original User-Item Matrix**")
-    fig_original = px.imshow(user_item_matrix, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-    fig_original.update_layout(
-        title='Original User-Item Matrix',
+with tab1:
+    st.subheader("User-Item Matrix")
+    fig_user_item_heatmap = px.imshow(user_item_matrix, text_auto=True, aspect="auto", color_continuous_scale=color_scale)
+    fig_user_item_heatmap.update_layout(
+        title='User-Item Matrix',
         xaxis_title='Items',
-        yaxis_title='Users'
+        yaxis_title='Users',
+        height=400
     )
-    st.plotly_chart(fig_original, use_container_width=True)
+    st.plotly_chart(fig_user_item_heatmap, use_container_width=True)
 
-with col2:
-    st.markdown("**Reconstructed User-Item Matrix**")
-    fig_reconstructed = px.imshow(reconstructed_matrix, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-    fig_reconstructed.update_layout(
-        title='Reconstructed User-Item Matrix',
-        xaxis_title='Items',
-        yaxis_title='Users'
-    )
-    st.plotly_chart(fig_reconstructed, use_container_width=True)
+with tab2:
+    st.subheader("Decomposed Matrices")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("**U Matrix (User-Latent Features):**")
+        fig_U = px.imshow(U, text_auto='.2f', aspect="auto", color_continuous_scale=color_scale)
+        fig_U.update_layout(title='U Matrix', xaxis_title='Latent Features', yaxis_title='Users', height=300)
+        st.plotly_chart(fig_U, use_container_width=True)
+
+    with col2:
+        st.markdown("**Sigma Matrix (Singular Values):**")
+        fig_Sigma = px.imshow(Sigma, text_auto='.2f', aspect="auto", color_continuous_scale=color_scale)
+        fig_Sigma.update_layout(title='Sigma Matrix', xaxis_title='Latent Features', yaxis_title='Latent Features', height=300)
+        st.plotly_chart(fig_Sigma, use_container_width=True)
+
+    with col3:
+        st.markdown("**VT Matrix (Item-Latent Features):**")
+        fig_VT = px.imshow(VT, text_auto='.2f', aspect="auto", color_continuous_scale=color_scale)
+        fig_VT.update_layout(title='VT Matrix', xaxis_title='Items', yaxis_title='Latent Features', height=300)
+        st.plotly_chart(fig_VT, use_container_width=True)
+
+with tab3:
+    st.subheader("Reconstructed Matrix Example")
+    k = num_latent_features
+    reconstructed_matrix = np.dot(U[:, :k], np.dot(Sigma[:k, :k], VT[:k, :]))
+
+    st.markdown(f"Using top {k} latent features to reconstruct the original matrix:")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**Original User-Item Matrix**")
+        fig_original = px.imshow(user_item_matrix, text_auto='.2f', aspect="auto", color_continuous_scale=color_scale)
+        fig_original.update_layout(title='Original User-Item Matrix', xaxis_title='Items', yaxis_title='Users', height=400)
+        st.plotly_chart(fig_original, use_container_width=True)
+
+    with col2:
+        st.markdown("**Reconstructed User-Item Matrix**")
+        fig_reconstructed = px.imshow(reconstructed_matrix, text_auto='.2f', aspect="auto", color_continuous_scale=color_scale)
+        fig_reconstructed.update_layout(title='Reconstructed User-Item Matrix', xaxis_title='Items', yaxis_title='Users', height=400)
+        st.plotly_chart(fig_reconstructed, use_container_width=True)
 
 st.markdown("""
 ### Explanation:
