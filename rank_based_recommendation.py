@@ -4,8 +4,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from surprise import Reader, Dataset, SVD, KNNBasic, CoClustering
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import plotly.express as px
+import random
 
 # Load data
 @st.cache_data()
@@ -116,58 +116,95 @@ def plot_coclustering_clusters(model):
 
 # Streamlit interface
 def main():
-    st.title('Movie Recommendation System')
+    st.set_page_config(layout="wide")
+    st.title('🎬 Movie Recommendation System')
 
     # Sidebar
+    st.sidebar.header("Input Parameters")
     recommendation_type = st.sidebar.selectbox('Select Recommendation Type', ('Content-based', 'Collaborative Filtering'))
     
     if recommendation_type == 'Content-based':
         movie_list = movies['title'].tolist()
         selected_movie = st.sidebar.selectbox('Select a movie', movie_list)
-        recommend_button = st.sidebar.button('Recommend')
-        
-        if recommend_button:
-            st.subheader("Understanding Content-based Recommendation")
-            st.write("""
-            This recommendation approach considers the descriptions and genres of movies. 
-            It calculates how similar words appear in the descriptions (TF-IDF) and then determines 
-            the similarity between movies based on these descriptions.
-            """)
-
-            with st.spinner('Calculating Recommendations...'):
-                recommendations = context_based_recommender(selected_movie)
-                st.write('Recommendations based on similar content:')
-                st.write(recommendations)
-
-    elif recommendation_type == 'Collaborative Filtering':
+    else:
         algo_type = st.sidebar.selectbox('Select Algorithm', ('SVD', 'KNNBasic', 'CoClustering'))
         user_id = st.sidebar.number_input('Enter User ID', min_value=1, value=1, step=1)
-        recommend_button = st.sidebar.button('Recommend')
+    
+    recommend_button = st.sidebar.button('Recommend', key='recommend_button')
+
+    # Main content area with tabs
+    tab1, tab2, tab3 = st.tabs(["🧠 Learn", "🔍 Explore", "🎯 Quiz"])
+
+    with tab1:
+        st.header("Understanding Movie Recommendations")
+        st.subheader("Content-based Filtering")
+        st.write("""
+        Content-based filtering recommends movies similar to ones you've liked before. It's like saying, 
+        "If you enjoyed 'The Dark Knight', you might like other superhero movies or films directed by Christopher Nolan."
+
+        Example: If you loved 'Jurassic Park', the system might recommend 'Godzilla' or 'King Kong' because they're all about big creatures and adventure.
+        """)
         
+        st.subheader("Collaborative Filtering")
+        st.write("""
+        Collaborative filtering suggests movies based on what similar users liked. It's like getting recommendations from friends with similar tastes.
+
+        Example: If you and another user both gave 5 stars to 'The Shawshank Redemption' and 'The Godfather', and they loved 'Goodfellas', 
+        the system might recommend 'Goodfellas' to you too.
+        """)
+
+    with tab2:
         if recommend_button:
-            st.subheader("Understanding Collaborative Filtering")
-            st.write("""
-            Collaborative filtering predicts what a user will like based on what similar users liked. 
-            It doesn't need to know anything about the movies themselves (like genre or director).
-            """)
+            st.header("Recommendation Results")
+            with st.spinner('Generating Recommendations...'):
+                if recommendation_type == 'Content-based':
+                    recommendations = context_based_recommender(selected_movie)
+                    st.write(f'Recommendations based on "{selected_movie}":')
+                    st.dataframe(recommendations.style.background_gradient(cmap='YlOrRd'))
+                else:
+                    recommendations, model = collaborative_filtering(user_id, algo_type)
+                    st.write(f'Top 10 Recommendations for User {user_id} using {algo_type}:')
+                    st.dataframe(recommendations.style.background_gradient(cmap='YlOrRd'))
 
-            with st.spinner('Generating Collaborative Filtering Recommendations...'):
-                recommendations, model = collaborative_filtering(user_id, algo_type)
-                st.write(f'Top 10 Recommendations for User {user_id} using {algo_type}:')
-                st.write(recommendations)
+                    if algo_type == 'SVD':
+                        st.subheader('SVD Factor Visualization')
+                        plot_svd_factors(model)
+                    elif algo_type == 'KNNBasic':
+                        st.subheader('User Similarity vs Rating Visualization')
+                        plot_knn_similarity(model, user_id)
+                    elif algo_type == 'CoClustering':
+                        st.subheader('Co-Clustering Visualization')
+                        plot_coclustering_clusters(model)
 
-                if algo_type == 'SVD':
-                    st.subheader('SVD Factor Visualization')
-                    st.write('This visualization shows the latent factors learned by the SVD algorithm. Each point represents a user or item in the latent space.')
-                    plot_svd_factors(model)
-                elif algo_type == 'KNNBasic':
-                    st.subheader('User Similarity vs Rating Visualization')
-                    st.write('This visualization shows the relationship between user similarity and movie ratings. It helps understand how similar users influence the recommendations.')
-                    plot_knn_similarity(model, user_id)
-                elif algo_type == 'CoClustering':
-                    st.subheader('Co-Clustering Clusters Visualization')
-                    st.write('This visualization shows the user and item clusters learned by the Co-Clustering algorithm. Each point represents a user or item cluster.')
-                    plot_coclustering_clusters(model)
+    with tab3:
+        st.header("Test Your Knowledge")
+        questions = [
+            {
+                "question": "What does content-based filtering mainly consider?",
+                "options": ["User ratings", "Movie features", "User demographics", "Box office performance"],
+                "answer": "Movie features"
+            },
+            {
+                "question": "Which algorithm is NOT used in collaborative filtering in this app?",
+                "options": ["SVD", "KNNBasic", "CoClustering", "Random Forest"],
+                "answer": "Random Forest"
+            },
+            {
+                "question": "What's the main advantage of collaborative filtering?",
+                "options": ["It's faster", "It doesn't need movie content information", "It always provides perfect recommendations", "It only works for new movies"],
+                "answer": "It doesn't need movie content information"
+            }
+        ]
+
+        for i, q in enumerate(questions):
+            st.subheader(f"Question {i+1}")
+            st.write(q["question"])
+            answer = st.radio("Select your answer:", q["options"], key=f"q{i}")
+            if st.button("Show Answer", key=f"btn{i}"):
+                if answer == q["answer"]:
+                    st.success("Correct! 🎉")
+                else:
+                    st.error(f"Incorrect. The correct answer is: {q['answer']}")
 
 if __name__ == '__main__':
     main()
