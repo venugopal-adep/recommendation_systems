@@ -199,8 +199,6 @@ with tab2:
     - For Euclidean Distance: More spread out points indicate larger distance (less similarity).
     """)
 
-    """)
-
 with tab3:
     st.header("Test Your Knowledge")
     
