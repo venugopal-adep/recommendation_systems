@@ -5,7 +5,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from surprise import Reader, Dataset, SVD, KNNBasic, CoClustering
 import matplotlib.pyplot as plt
 import plotly.express as px
-import random
 
 # Load data
 @st.cache_data()
@@ -19,26 +18,21 @@ movies, ratings = load_data()
 # Context-based Filtering
 @st.cache_data()
 def context_based_recommender(movie_title):
-    # Using TF-IDF Vectorizer
     tfidf = TfidfVectorizer(stop_words='english')
     movies['description'] = movies['title'] + ' ' + movies['genres']
     tfidf_matrix = tfidf.fit_transform(movies['description'])
     cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
-    # Get index of the movie that matches the title
     indices = pd.Series(movies.index, index=movies['title']).drop_duplicates()
-
     idx = indices[movie_title]
     sim_scores = list(enumerate(cosine_sim[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:11]  # Get the scores of the 10 most similar movies
+    sim_scores = sim_scores[1:11]
     movie_indices = [i[0] for i in sim_scores]
-    similarity_scores = [round(i[1] * 100, 2) for i in sim_scores]  # Convert to percentage
+    similarity_scores = [round(i[1] * 100, 2) for i in sim_scores]
 
     recommendations = movies.iloc[movie_indices]
     recommendations['similarity_score'] = similarity_scores
-
-    # Sort recommendations by similarity score in descending order
     recommendations = recommendations.sort_values('similarity_score', ascending=False)
 
     return recommendations[['title', 'genres', 'similarity_score']]
@@ -53,13 +47,12 @@ def collaborative_filtering(user_id, algo_type):
         model = SVD(n_factors=150, n_epochs=30, lr_all=0.01, reg_all=0.1)
     elif algo_type == 'KNNBasic':
         model = KNNBasic(k=30, sim_options={'user_based': True})
-    elif algo_type == 'CoClustering':
+    else:
         model = CoClustering(n_cltr_u=30, n_cltr_i=30, n_epochs=30)
 
     trainset = data.build_full_trainset()
     model.fit(trainset)
 
-    # Get top 10 movie recommendations for the user
     user_ratings = ratings[ratings['userId'] == user_id]
     user_ratings = user_ratings.merge(movies[['movieId', 'title']], on='movieId', how='left')
     user_ratings = user_ratings[['userId', 'movieId', 'title', 'rating']]
@@ -70,8 +63,7 @@ def collaborative_filtering(user_id, algo_type):
             predicted_rating = model.predict(user_id, movieId).est
             recommendations.append((movieId, predicted_rating))
 
-    recommendations = sorted(recommendations, key=lambda x: x[1], reverse=True)
-    recommendations = recommendations[:10]  # Get top 10 recommendations
+    recommendations = sorted(recommendations, key=lambda x: x[1], reverse=True)[:10]
 
     movie_ids = [r[0] for r in recommendations]
     predicted_ratings = [round(r[1], 2) for r in recommendations]
@@ -116,7 +108,6 @@ def plot_coclustering_clusters(model):
 
 # Streamlit interface
 def main():
-    st.set_page_config(layout="wide")
     st.title('🎬 Movie Recommendation System')
 
     # Sidebar
