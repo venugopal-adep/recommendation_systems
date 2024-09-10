@@ -98,69 +98,55 @@ with tab2:
         user1_id = st.selectbox('Select User 1', user_item_matrix.index)
         user2_id = st.selectbox('Select User 2', user_item_matrix.index)
 
-    user1_ratings = user_item_matrix.loc[user1_id].to_dict()
-    user2_ratings = user_item_matrix.loc[user2_id].to_dict()
+        n_movies = st.slider("Number of movies to compare", 5, 50, 20)
 
-    # Function to calculate Cosine Similarity
-    def calculate_cosine_similarity(user1, user2):
-        common_movies = set(user1.keys()).intersection(set(user2.keys()))
-        if not common_movies:
-            return 0
-        
-        user1_vector = [user1[movie] for movie in common_movies]
-        user2_vector = [user2[movie] for movie in common_movies]
-        
-        return cosine_similarity([user1_vector], [user2_vector])[0][0]
+    user1_ratings = user_item_matrix.loc[user1_id]
+    user2_ratings = user_item_matrix.loc[user2_id]
 
-    # Function to calculate Pearson Correlation
-    def calculate_pearson_correlation(user1, user2):
-        common_movies = set(user1.keys()).intersection(set(user2.keys()))
-        if not common_movies:
-            return 0
+    # Function to calculate similarities
+    def calculate_similarity(user1, user2, method):
+        common_movies = user1.index[user1.notnull() & user2.notnull()]
+        u1 = user1[common_movies]
+        u2 = user2[common_movies]
         
-        user1_vector = [user1[movie] for movie in common_movies]
-        user2_vector = [user2[movie] for movie in common_movies]
-        
-        return pearsonr(user1_vector, user2_vector)[0]
+        if method == 'Cosine Similarity':
+            return cosine_similarity([u1], [u2])[0][0]
+        elif method == 'Pearson Correlation':
+            return pearsonr(u1, u2)[0]
+        else:  # Euclidean Distance
+            return euclidean(u1, u2)
 
-    # Function to calculate Euclidean Distance
-    def calculate_euclidean_distance(user1, user2):
-        common_movies = set(user1.keys()).intersection(set(user2.keys()))
-        if not common_movies:
-            return float('inf')
-        
-        user1_vector = [user1[movie] for movie in common_movies]
-        user2_vector = [user2[movie] for movie in common_movies]
-        
-        return euclidean(user1_vector, user2_vector)
+    similarity = calculate_similarity(user1_ratings, user2_ratings, concept)
 
     with col2:
-        # Calculate similarity/distance based on selected concept
+        st.write(f"**{concept}** between User {user1_id} and User {user2_id} is: {similarity:.2f}")
+
         if concept == 'Cosine Similarity':
-            similarity = calculate_cosine_similarity(user1_ratings, user2_ratings)
-            st.write(f"**Cosine Similarity** between User {user1_id} and User {user2_id} is: {similarity:.2f}")
-            st.write("Cosine Similarity measures the cosine of the angle between two vectors. A value of 1 indicates that the users have identical preferences, while a value of 0 indicates no similarity.")
-            metric = "Cosine Similarity"
+            st.write("Cosine Similarity measures the cosine of the angle between two vectors. A value of 1 indicates identical preferences, while 0 indicates no similarity.")
         elif concept == 'Pearson Correlation':
-            correlation = calculate_pearson_correlation(user1_ratings, user2_ratings)
-            st.write(f"**Pearson Correlation** between User {user1_id} and User {user2_id} is: {correlation:.2f}")
-            st.write("Pearson Correlation measures the linear correlation between two sets of data. A value of 1 indicates a perfect positive correlation, -1 indicates a perfect negative correlation, and 0 indicates no correlation.")
-            metric = "Pearson Correlation"
-        elif concept == 'Euclidean Distance':
-            distance = calculate_euclidean_distance(user1_ratings, user2_ratings)
-            st.write(f"**Euclidean Distance** between User {user1_id} and User {user2_id} is: {distance:.2f}")
-            st.write("Euclidean Distance measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similar preferences.")
-            metric = "Euclidean Distance"
+            st.write("Pearson Correlation measures the linear correlation between two sets of data. A value of 1 indicates perfect positive correlation, -1 indicates perfect negative correlation, and 0 indicates no correlation.")
+        else:
+            st.write("Euclidean Distance measures the straight-line distance between two points in space. A smaller value indicates more similar preferences.")
 
-    # Display ratings in visual format
-    common_movies = set(user1_ratings.keys()).intersection(set(user2_ratings.keys()))
-    ratings_data = [(movies[movies['movieId'] == movie]['title'].values[0], user1_ratings[movie], user2_ratings[movie]) for movie in common_movies]
-    ratings_df = pd.DataFrame(ratings_data, columns=['Movie', 'User 1 Rating', 'User 2 Rating'])
+    # Get common rated movies
+    common_movies = user1_ratings.index[user1_ratings.notnull() & user2_ratings.notnull()]
+    common_movies = common_movies[:n_movies]  # Limit to selected number of movies
 
-    # Improved visualization
+    ratings_data = []
+    for movie in common_movies:
+        movie_title = movies.loc[movies['movieId'] == movie, 'title'].values[0]
+        ratings_data.append({
+            'Movie': movie_title,
+            'User 1 Rating': user1_ratings[movie],
+            'User 2 Rating': user2_ratings[movie]
+        })
+
+    ratings_df = pd.DataFrame(ratings_data)
+
+    # Interactive visualization
     st.write("### Comparison of User Ratings")
     fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', 
-                     text='Movie', title=f'{metric}: User {user1_id} vs User {user2_id}',
+                     text='Movie', title=f'{concept}: User {user1_id} vs User {user2_id}',
                      labels={'User 1 Rating': f'User {user1_id} Rating', 'User 2 Rating': f'User {user2_id} Rating'},
                      color='Movie', hover_data=['Movie'])
 
@@ -180,6 +166,25 @@ with tab2:
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # Interactive movie comparison
+    st.write("### Movie-by-Movie Comparison")
+    selected_movie = st.selectbox("Select a movie to compare ratings", ratings_df['Movie'])
+    movie_data = ratings_df[ratings_df['Movie'] == selected_movie].iloc[0]
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Movie", selected_movie)
+    col2.metric(f"User {user1_id} Rating", movie_data['User 1 Rating'])
+    col3.metric(f"User {user2_id} Rating", movie_data['User 2 Rating'])
+
+    # Explanation of the similarity for this movie
+    rating_diff = abs(movie_data['User 1 Rating'] - movie_data['User 2 Rating'])
+    if rating_diff < 1:
+        st.write("These users have very similar opinions on this movie.")
+    elif rating_diff < 2:
+        st.write("These users have somewhat different opinions on this movie.")
+    else:
+        st.write("These users have very different opinions on this movie.")
+
     # Explanation of the plot
     st.write("""
     **Understanding the Plot:**
@@ -192,6 +197,8 @@ with tab2:
     **Interpreting Similarity:**
     - For Cosine Similarity and Pearson Correlation: More points close to the line indicate higher similarity.
     - For Euclidean Distance: More spread out points indicate larger distance (less similarity).
+    """)
+
     """)
 
 with tab3:
