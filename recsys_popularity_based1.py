@@ -45,6 +45,7 @@ def load_data(dataset_name):
 
 # Main content
 st.title('Popularity-Based Recommender System')
+st.write('**Developed by : Venugopal Adep**')
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Learn", "Explore", "Quiz"])
