@@ -10,4 +10,3 @@ altair
 wordcloud
 spacy
 sentence-transformers
-distutils
