@@ -5,196 +5,275 @@ import plotly.graph_objs as go
 import plotly.express as px
 from scipy.spatial import distance
 
-st.title("Collaborative Filtering Explained")
-st.write("**Developed by : Venugopal Adep**")
+# Page configuration
+st.set_page_config(page_title="Collaborative Filtering", layout="wide")
 
-st.markdown(r"""
-**Collaborative Filtering** is a technique used in recommendation systems. The main idea behind collaborative filtering is that if a user's likes/dislikes are similar to another user's likes/dislikes, then their tastes are similar. We can use this to recommend products that other similar users liked.
-
-It is based on the assumption that if a person liked something in the past, they will also like it in the future. Collaborative filtering is of two types:
-- **User-User Collaborative Filtering**: It is based on the search for similar users in terms of interactions with items.
-- **Item-Item Collaborative Filtering**: It is based on the search for similar items in terms of user-item interactions.
-""")
-
-# Sidebar controls
-st.sidebar.subheader("Controls")
-filtering_type = st.sidebar.selectbox("Filtering Type", ["User-User", "Item-Item"])
-num_users = st.sidebar.slider("Number of Users", 5, 20, 10)
-num_items = st.sidebar.slider("Number of Items", 5, 20, 10)
-k_value = st.sidebar.slider("Value of k", 1, 10, 5)
-regenerate_data = st.sidebar.button("Regenerate Data")
-
-# Initialize or regenerate data
-if regenerate_data or 'user_item_matrix' not in st.session_state:
-    np.random.seed(42)
-    st.session_state.user_item_matrix = np.random.randint(0, 2, size=(num_users, num_items))
-
-user_item_matrix = st.session_state.user_item_matrix
-
-# Display the user-item matrix as a heatmap
-st.sidebar.subheader("User-Item Matrix")
-fig_user_item_heatmap = px.imshow(user_item_matrix, text_auto=True, aspect="auto", color_continuous_scale='Blues')
-fig_user_item_heatmap.update_layout(
-    title='User-Item Matrix',
-    xaxis_title='Items',
-    yaxis_title='Users',
-    xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)]),
-    yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)])
-)
-st.sidebar.plotly_chart(fig_user_item_heatmap, use_container_width=True)
-
-# Function to calculate similarity
-def calculate_similarity(matrix, type='user'):
-    if type == 'user':
-        return 1 - distance.cdist(matrix, matrix, 'cosine')
-    else:
-        return 1 - distance.cdist(matrix.T, matrix.T, 'cosine')
-
-# Calculate similarity based on the selected filtering type
-if filtering_type == 'User-User':
-    similarity_matrix = calculate_similarity(user_item_matrix, type='user')
-else:
-    similarity_matrix = calculate_similarity(user_item_matrix, type='item')
-
-# Display the similarity matrix as a heatmap
-st.subheader(f"{filtering_type} Similarity Matrix")
-fig_heatmap = px.imshow(similarity_matrix, text_auto='.2f', aspect="auto", color_continuous_scale='Blues')
-if filtering_type == 'User-User':
-    fig_heatmap.update_layout(
-        xaxis_title='Users',
-        yaxis_title='Users',
-        xaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)]),
-        yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'User {i+1}' for i in range(num_users)])
-    )
-else:
-    fig_heatmap.update_layout(
-        xaxis_title='Items',
-        yaxis_title='Items',
-        xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)]),
-        yaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'Item {i+1}' for i in range(num_items)])
-    )
-st.plotly_chart(fig_heatmap, use_container_width=True)
-
-# Select a random user/item to demonstrate the recommendation
-if filtering_type == 'User-User':
-    random_index = np.random.randint(num_users)
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for User {random_index + 1} based on similar users:</span>", unsafe_allow_html=True)
-
-    # Find similar users
-    similar_users_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    similar_users_display = [f"User{user + 1}" for user in similar_users_indices]
-    similar_users_scores = similarity_matrix[random_index][similar_users_indices]
-    
-    # Create a formatted string with users and their similarity scores
-    similar_users_with_scores = [f"{user} (similarity: {score:.2f})" for user, score in zip(similar_users_display, similar_users_scores)]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar users: {similar_users_with_scores}</span>", unsafe_allow_html=True)
-
-    st.write("Explanation of similarity calculation:")
-    st.write(f"1. We calculate the cosine similarity between User {random_index + 1} and all other users.")
-    st.write("2. Cosine similarity measures the cosine of the angle between two vectors, ranging from -1 to 1.")
-    st.write("3. We subtract the cosine similarity from 1 to get a distance measure (0 means identical, 2 means opposite).")
-    st.write(f"4. We then sort these distances in ascending order to find the {k_value} most similar users.")
-
-    # Recommend items that similar users have interacted with
-    recommended_items = np.zeros(num_items, dtype=int)
-    for user in similar_users_indices:
-        recommended_items += user_item_matrix[user]
-    recommended_items = np.where(recommended_items > 0, 1, 0)
-    recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]  # Exclude already interacted items
-    recommended_items_display = [f"Item{item + 1}" for item in recommended_items]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended items: {recommended_items_display}</span>", unsafe_allow_html=True)
-
-    st.write("Explanation of recommendation process:")
-    st.write(f"1. We look at the items that the {k_value} most similar users have interacted with.")
-    st.write("2. We sum up these interactions to get a score for each item.")
-    st.write("3. We convert these scores to binary (0 or 1) to get a list of all items these similar users have interacted with.")
-    st.write(f"4. We remove the items that User {random_index + 1} has already interacted with.")
-    st.write("5. The remaining items are our recommendations.")
-
-else:
-    random_index = np.random.randint(num_items)
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommendations for Item {random_index + 1} based on similar items:</span>", unsafe_allow_html=True)
-
-    # Find similar items
-    similar_items_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
-    similar_items_display = [f"Item{item + 1}" for item in similar_items_indices]
-    similar_items_scores = similarity_matrix[random_index][similar_items_indices]
-    
-    # Create a formatted string with items and their similarity scores
-    similar_items_with_scores = [f"{item} (similarity: {score:.2f})" for item, score in zip(similar_items_display, similar_items_scores)]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Top similar items: {similar_items_with_scores}</span>", unsafe_allow_html=True)
-
-    st.write("Explanation of similarity calculation:")
-    st.write(f"1. We calculate the cosine similarity between Item {random_index + 1} and all other items.")
-    st.write("2. Cosine similarity measures the cosine of the angle between two vectors, ranging from -1 to 1.")
-    st.write("3. We subtract the cosine similarity from 1 to get a distance measure (0 means identical, 2 means opposite).")
-    st.write(f"4. We then sort these distances in ascending order to find the {k_value} most similar items.")
-
-    # Recommend to users who have interacted with similar items
-    recommended_users = np.zeros(num_users, dtype=int)
-    for item in similar_items_indices:
-        recommended_users += user_item_matrix[:, item]
-    recommended_users = np.where(recommended_users > 0, 1, 0)
-    recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]  # Exclude already interacted users
-    recommended_users_display = [f"User{user + 1}" for user in recommended_users]
-    st.markdown(f"<span style='color: red; font-weight: bold;'>Recommended to users: {recommended_users_display}</span>", unsafe_allow_html=True)
-
-    st.write("Explanation of recommendation process:")
-    st.write(f"1. We look at the users who have interacted with the {k_value} most similar items.")
-    st.write("2. We sum up these interactions to get a score for each user.")
-    st.write("3. We convert these scores to binary (0 or 1) to get a list of all users who have interacted with these similar items.")
-    st.write(f"4. We remove the users who have already interacted with Item {random_index + 1}.")
-    st.write("5. The remaining users are our recommendations.")
-
-# Visualize the recommendations
-fig = go.Figure()
-
-# Plotting the user-item matrix
-for i in range(num_users):
-    for j in range(num_items):
-        color = 'blue' if user_item_matrix[i, j] == 1 else 'red'
-        fig.add_trace(go.Scatter(
-            x=[j + 1],
-            y=[i + 1],
-            mode='markers',
-            marker=dict(color=color, size=10),
-            name=f"User {i + 1}, Item {j + 1}"
-        ))
-
-# Highlight the random user/item and their recommendations
-if filtering_type == 'User-User':
-    for item in recommended_items:
-        fig.add_trace(go.Scatter(
-            x=[item + 1],
-            y=[random_index + 1],
-            mode='markers',
-            marker=dict(color='green', size=15),
-            name=f"Recommended Item {item + 1}"
-        ))
-else:
-    for user in recommended_users:
-        fig.add_trace(go.Scatter(
-            x=[random_index + 1],
-            y=[user + 1],
-            mode='markers',
-            marker=dict(color='green', size=15),
-            name=f"Recommended to User {user + 1}"
-        ))
-
-fig.update_layout(
-    title='Collaborative Filtering Visualization',
-    xaxis=dict(title='Items', tickmode='array', tickvals=list(range(1, num_items+1)), ticktext=[f'Item {i}' for i in range(1, num_items+1)]),
-    yaxis=dict(title='Users', tickmode='array', tickvals=list(range(1, num_users+1)), ticktext=[f'User {i}' for i in range(1, num_users+1)]),
-    showlegend=False,
-    width=800,
-    height=600
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
+# Custom CSS for better styling
 st.markdown("""
-**Legend:**
-- **Blue Dots**: Existing interactions between users and items.
-- **Red Dots**: No interaction between users and items.
-- **Green Dots**: Recommended interactions based on the collaborative filtering algorithm.
-""")
+<style>
+    .main-header {text-align: center; color: #1E88E5; margin-bottom: 0;}
+    .sub-header {text-align: center; color: #757575; margin-top: 0; font-size: 1.1em;}
+    .section-header {color: #1E88E5; border-bottom: 1px solid #E0E0E0; padding-bottom: 5px;}
+    .explanation {background-color: #F8F9FA; padding: 10px; border-radius: 5px; margin: 10px 0;}
+    .highlight {color: #FF5733; font-weight: bold;}
+    .legend-item {display: flex; align-items: center; margin-bottom: 5px;}
+    .legend-color {width: 15px; height: 15px; margin-right: 10px; border-radius: 50%;}
+</style>
+""", unsafe_allow_html=True)
+
+# Title with custom styling
+st.markdown("<h1 class='main-header'>Collaborative Filtering Explained</h1>", unsafe_allow_html=True)
+st.markdown("<p class='sub-header'>Developed by: Venugopal Adep</p>", unsafe_allow_html=True)
+
+# Create two columns for layout
+col1, col2 = st.columns([3, 1])
+
+with col2:
+    st.markdown("<h3 class='section-header'>Controls</h3>", unsafe_allow_html=True)
+    filtering_type = st.radio("Filtering Type", ["User-User", "Item-Item"])
+    num_users = st.slider("Number of Users", 5, 20, 10)
+    num_items = st.slider("Number of Items", 5, 20, 10)
+    k_value = st.slider("Value of k", 1, 10, 5)
+    regenerate_data = st.button("Regenerate Data")
+
+    # Initialize or regenerate data
+    if regenerate_data or 'user_item_matrix' not in st.session_state:
+        np.random.seed(42)
+        st.session_state.user_item_matrix = np.random.randint(0, 2, size=(num_users, num_items))
+
+    user_item_matrix = st.session_state.user_item_matrix
+
+    # Display the user-item matrix as a compact heatmap
+    fig_user_item_heatmap = px.imshow(
+        user_item_matrix, 
+        text_auto=True, 
+        aspect="auto", 
+        color_continuous_scale='Blues',
+        labels=dict(x="Items", y="Users", color="Interaction")
+    )
+    fig_user_item_heatmap.update_layout(
+        margin=dict(l=10, r=10, t=30, b=10),
+        height=250,
+        title='User-Item Matrix',
+        xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'{i+1}' for i in range(num_items)]),
+        yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'{i+1}' for i in range(num_users)])
+    )
+    st.plotly_chart(fig_user_item_heatmap, use_container_width=True)
+
+with col1:
+    # Brief explanation in a collapsible section
+    with st.expander("About Collaborative Filtering"):
+        st.markdown("""
+        **Collaborative Filtering** recommends items based on similarity patterns.
+        
+        **Two main approaches:**
+        - **User-User**: Finds similar users and recommends what they liked
+        - **Item-Item**: Finds similar items to those a user already liked
+        
+        The algorithm assumes that users with similar past preferences will have similar future preferences.
+        """)
+    
+    # Calculate similarity based on the selected filtering type
+    def calculate_similarity(matrix, type='user'):
+        if type == 'user':
+            return 1 - distance.cdist(matrix, matrix, 'cosine')
+        else:
+            return 1 - distance.cdist(matrix.T, matrix.T, 'cosine')
+
+    if filtering_type == 'User-User':
+        similarity_matrix = calculate_similarity(user_item_matrix, type='user')
+    else:
+        similarity_matrix = calculate_similarity(user_item_matrix, type='item')
+
+    # Display the similarity matrix as a heatmap
+    st.markdown(f"<h3 class='section-header'>{filtering_type} Similarity Matrix</h3>", unsafe_allow_html=True)
+    fig_heatmap = px.imshow(
+        similarity_matrix, 
+        text_auto='.2f', 
+        aspect="auto", 
+        color_continuous_scale='RdBu_r',
+        labels=dict(color="Similarity")
+    )
+    
+    if filtering_type == 'User-User':
+        fig_heatmap.update_layout(
+            xaxis_title='Users',
+            yaxis_title='Users',
+            xaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'{i+1}' for i in range(num_users)]),
+            yaxis=dict(tickmode='array', tickvals=list(range(num_users)), ticktext=[f'{i+1}' for i in range(num_users)])
+        )
+    else:
+        fig_heatmap.update_layout(
+            xaxis_title='Items',
+            yaxis_title='Items',
+            xaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'{i+1}' for i in range(num_items)]),
+            yaxis=dict(tickmode='array', tickvals=list(range(num_items)), ticktext=[f'{i+1}' for i in range(num_items)])
+        )
+    
+    fig_heatmap.update_layout(
+        height=400,
+        margin=dict(l=10, r=10, t=10, b=10)
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+    # Select a random user/item to demonstrate the recommendation
+    if filtering_type == 'User-User':
+        random_index = np.random.randint(num_users)
+        
+        # Find similar users
+        similar_users_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
+        similar_users_scores = similarity_matrix[random_index][similar_users_indices]
+        
+        # Recommend items that similar users have interacted with
+        recommended_items = np.zeros(num_items, dtype=int)
+        for user in similar_users_indices:
+            recommended_items += user_item_matrix[user]
+        recommended_items = np.where(recommended_items > 0, 1, 0)
+        recommended_items = np.where((recommended_items - user_item_matrix[random_index]) > 0)[0]
+        
+        # Results display
+        results_col1, results_col2 = st.columns(2)
+        
+        with results_col1:
+            st.markdown(f"<div class='explanation'><span class='highlight'>For User {random_index + 1}:</span><br>", unsafe_allow_html=True)
+            
+            # Display similar users in a clean table
+            similar_data = []
+            for i, (user, score) in enumerate(zip(similar_users_indices, similar_users_scores)):
+                similar_data.append({
+                    "Rank": i+1,
+                    "Similar User": f"User {user + 1}",
+                    "Similarity": f"{score:.2f}"
+                })
+            st.markdown("<span class='highlight'>Similar Users:</span>", unsafe_allow_html=True)
+            st.table(similar_data)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with results_col2:
+            st.markdown("<div class='explanation'>", unsafe_allow_html=True)
+            if len(recommended_items) > 0:
+                st.markdown(f"<span class='highlight'>Recommended Items:</span><br>{', '.join([f'Item {item + 1}' for item in recommended_items])}", unsafe_allow_html=True)
+            else:
+                st.markdown("<span class='highlight'>No new items to recommend</span>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    else:
+        random_index = np.random.randint(num_items)
+        
+        # Find similar items
+        similar_items_indices = np.argsort(-similarity_matrix[random_index])[1:k_value + 1]  # Exclude self
+        similar_items_scores = similarity_matrix[random_index][similar_items_indices]
+        
+        # Recommend to users who have interacted with similar items
+        recommended_users = np.zeros(num_users, dtype=int)
+        for item in similar_items_indices:
+            recommended_users += user_item_matrix[:, item]
+        recommended_users = np.where(recommended_users > 0, 1, 0)
+        recommended_users = np.where((recommended_users - user_item_matrix[:, random_index]) > 0)[0]
+        
+        # Results display
+        results_col1, results_col2 = st.columns(2)
+        
+        with results_col1:
+            st.markdown(f"<div class='explanation'><span class='highlight'>For Item {random_index + 1}:</span><br>", unsafe_allow_html=True)
+            
+            # Display similar items in a clean table
+            similar_data = []
+            for i, (item, score) in enumerate(zip(similar_items_indices, similar_items_scores)):
+                similar_data.append({
+                    "Rank": i+1,
+                    "Similar Item": f"Item {item + 1}",
+                    "Similarity": f"{score:.2f}"
+                })
+            st.markdown("<span class='highlight'>Similar Items:</span>", unsafe_allow_html=True)
+            st.table(similar_data)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with results_col2:
+            st.markdown("<div class='explanation'>", unsafe_allow_html=True)
+            if len(recommended_users) > 0:
+                st.markdown(f"<span class='highlight'>Recommend to Users:</span><br>{', '.join([f'User {user + 1}' for user in recommended_users])}", unsafe_allow_html=True)
+            else:
+                st.markdown("<span class='highlight'>No new users to recommend to</span>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # Visualize the recommendations with improved styling
+    fig = go.Figure()
+
+    # Create a better visualization grid
+    for i in range(num_users):
+        for j in range(num_items):
+            marker_color = '#3366CC' if user_item_matrix[i, j] == 1 else '#E0E0E0'
+            marker_size = 12 if user_item_matrix[i, j] == 1 else 8
+            
+            fig.add_trace(go.Scatter(
+                x=[j + 1],
+                y=[i + 1],
+                mode='markers',
+                marker=dict(color=marker_color, size=marker_size),
+                hoverinfo='text',
+                hovertext=f"User {i + 1}, Item {j + 1}: {'Interaction' if user_item_matrix[i, j] == 1 else 'No interaction'}"
+            ))
+
+    # Highlight recommendations
+    if filtering_type == 'User-User':
+        for item in recommended_items:
+            fig.add_trace(go.Scatter(
+                x=[item + 1],
+                y=[random_index + 1],
+                mode='markers',
+                marker=dict(
+                    color='#FF5733',
+                    size=15,
+                    line=dict(color='black', width=1),
+                    symbol='star'
+                ),
+                hoverinfo='text',
+                hovertext=f"Recommended: Item {item + 1} for User {random_index + 1}"
+            ))
+    else:
+        for user in recommended_users:
+            fig.add_trace(go.Scatter(
+                x=[random_index + 1],
+                y=[user + 1],
+                mode='markers',
+                marker=dict(
+                    color='#FF5733',
+                    size=15,
+                    line=dict(color='black', width=1),
+                    symbol='star'
+                ),
+                hoverinfo='text',
+                hovertext=f"Recommended: Item {random_index + 1} for User {user + 1}"
+            ))
+
+    fig.update_layout(
+        title='Recommendation Visualization',
+        xaxis=dict(
+            title='Items',
+            tickmode='array',
+            tickvals=list(range(1, num_items+1)),
+            ticktext=[f'{i}' for i in range(1, num_items+1)]
+        ),
+        yaxis=dict(
+            title='Users',
+            tickmode='array',
+            tickvals=list(range(1, num_users+1)),
+            ticktext=[f'{i}' for i in range(1, num_users+1)]
+        ),
+        showlegend=False,
+        height=400,
+        margin=dict(l=40, r=40, t=40, b=40),
+        plot_bgcolor='#F8F9FA'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Compact legend
+    st.markdown("""
+    <div style="display: flex; justify-content: center; margin-top: -15px;">
+        <div class="legend-item"><div class="legend-color" style="background-color: #3366CC;"></div>Existing interaction</div>
+        <div class="legend-item" style="margin-left: 20px;"><div class="legend-color" style="background-color: #E0E0E0;"></div>No interaction</div>
+        <div class="legend-item" style="margin-left: 20px;"><div class="legend-color" style="background-color: #FF5733;"></div>Recommendation</div>
+    </div>
+    """, unsafe_allow_html=True)
