@@ -10,17 +10,19 @@ from scipy.spatial.distance import euclidean
 # Set page config
 st.set_page_config(page_title="Similarity Measures Visualizer", layout="wide")
 
-# Custom CSS for clean, compact UI
+# Custom CSS for clean, compact UI with aesthetic colors
 st.markdown("""
 <style>
-    /* Main theme colors */
+    /* Main theme colors - enhanced aesthetic palette */
     :root {
-        --primary: #3498db;
-        --secondary: #f8f9fa;
-        --text: #2c3e50;
-        --success: #2ecc71;
-        --warning: #f39c12;
-        --danger: #e74c3c;
+        --primary: #6366F1;
+        --secondary: #F8FAFC;
+        --text: #1E293B;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --danger: #EF4444;
+        --accent: #8B5CF6;
+        --light-accent: #EDE9FE;
     }
     
     /* Typography */
@@ -44,22 +46,23 @@ st.markdown("""
     h3 {
         font-size: 1.2rem;
         margin-top: 0.8rem;
+        color: var(--accent);
     }
     
     /* Card styling */
     .card {
         background-color: white;
-        border-radius: 6px;
-        padding: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        padding: 18px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         margin-bottom: 15px;
     }
     
     /* Metric styling */
     .metric-card {
-        background-color: #f8f9fa;
-        border-radius: 6px;
-        padding: 10px;
+        background-color: var(--light-accent);
+        border-radius: 8px;
+        padding: 12px;
         text-align: center;
         border-left: 4px solid var(--primary);
     }
@@ -72,7 +75,8 @@ st.markdown("""
     
     .metric-label {
         font-size: 0.9rem;
-        color: #6c757d;
+        color: var(--text);
+        opacity: 0.8;
     }
     
     /* Compact elements */
@@ -84,6 +88,15 @@ st.markdown("""
     
     .stRadio [data-testid="stMarkdownContainer"] > p {
         font-size: 0.9rem;
+    }
+    
+    /* Selected movie highlight */
+    .selected-movie {
+        background-color: var(--light-accent);
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid var(--accent);
+        margin-top: 15px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -136,8 +149,9 @@ for movie in common_movies:
     movie_title = movies.loc[movies['movieId'] == movie, 'title'].values[0]
     ratings_data.append({
         'Movie': movie_title,
-        'User 1 Rating': user1_ratings[movie],
-        'User 2 Rating': user2_ratings[movie]
+        f'User {user1_id} Rating': user1_ratings[movie],
+        f'User {user2_id} Rating': user2_ratings[movie],
+        'MovieId': movie
     })
 
 ratings_df = pd.DataFrame(ratings_data)
@@ -178,9 +192,9 @@ col1, col2 = st.columns([3, 2])
 
 with col1:
     # Create scatter plot
-    fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', 
+    fig = px.scatter(ratings_df, x=f'User {user1_id} Rating', y=f'User {user2_id} Rating', 
                     text='Movie', title=f'Rating Comparison: User {user1_id} vs User {user2_id}',
-                    color='User 1 Rating', color_continuous_scale='Viridis',
+                    color=f'User {user1_id} Rating', color_continuous_scale='Viridis',
                     hover_data=['Movie'])
 
     fig.update_traces(textposition='top center', marker=dict(size=12, opacity=0.8))
@@ -218,19 +232,19 @@ with col2:
         st.markdown("#### Vector Representation")
         
         # Create a simple vector visualization
-        u1_vec = ratings_df['User 1 Rating'].values[:5]  # First 5 movies
-        u2_vec = ratings_df['User 2 Rating'].values[:5]  # First 5 movies
+        u1_vec = ratings_df[f'User {user1_id} Rating'].values[:5]  # First 5 movies
+        u2_vec = ratings_df[f'User {user2_id} Rating'].values[:5]  # First 5 movies
         
         fig = go.Figure()
         
         # Add vectors
         fig.add_trace(go.Scatter(x=[0, u1_vec[0]], y=[0, u1_vec[1]], 
-                                mode='lines+markers', name='User 1',
-                                line=dict(color='blue', width=3)))
+                                mode='lines+markers', name=f'User {user1_id}',
+                                line=dict(color='#6366F1', width=3)))
         
         fig.add_trace(go.Scatter(x=[0, u2_vec[0]], y=[0, u2_vec[1]], 
-                                mode='lines+markers', name='User 2',
-                                line=dict(color='red', width=3)))
+                                mode='lines+markers', name=f'User {user2_id}',
+                                line=dict(color='#F59E0B', width=3)))
         
         fig.update_layout(
             height=200,
@@ -256,18 +270,18 @@ with col2:
         """)
         
         # Show trend line
-        x = ratings_df['User 1 Rating']
-        y = ratings_df['User 2 Rating']
+        x = ratings_df[f'User {user1_id} Rating']
+        y = ratings_df[f'User {user2_id} Rating']
         
-        fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating')
+        fig = px.scatter(ratings_df, x=f'User {user1_id} Rating', y=f'User {user2_id} Rating')
         fig.add_trace(go.Scatter(x=x, y=np.poly1d(np.polyfit(x, y, 1))(x),
                                 mode='lines', name='Trend Line',
-                                line=dict(color='red', width=2, dash='dash')))
+                                line=dict(color='#8B5CF6', width=2, dash='dash')))
         
         fig.update_layout(
             height=200,
-            xaxis=dict(range=[0, 5.5], title="User 1 Rating"),
-            yaxis=dict(range=[0, 5.5], title="User 2 Rating"),
+            xaxis=dict(range=[0, 5.5], title=f"User {user1_id} Rating"),
+            yaxis=dict(range=[0, 5.5], title=f"User {user2_id} Rating"),
             plot_bgcolor='white',
             title="Correlation Trend Line"
         )
@@ -293,43 +307,86 @@ with col2:
         fig = go.Figure()
         
         # Add points
-        fig.add_trace(go.Scatter(x=[ratings_df['User 1 Rating'][0]], 
-                                y=[ratings_df['User 2 Rating'][0]],
+        fig.add_trace(go.Scatter(x=[ratings_df[f'User {user1_id} Rating'][0]], 
+                                y=[ratings_df[f'User {user2_id} Rating'][0]],
                                 mode='markers', name='Movie 1',
-                                marker=dict(size=12, color='blue')))
+                                marker=dict(size=12, color='#6366F1')))
         
-        fig.add_trace(go.Scatter(x=[ratings_df['User 1 Rating'][1]], 
-                                y=[ratings_df['User 2 Rating'][1]],
+        fig.add_trace(go.Scatter(x=[ratings_df[f'User {user1_id} Rating'][1]], 
+                                y=[ratings_df[f'User {user2_id} Rating'][1]],
                                 mode='markers', name='Movie 2',
-                                marker=dict(size=12, color='red')))
+                                marker=dict(size=12, color='#F59E0B')))
         
         # Add line between points to show distance
         fig.add_shape(type="line", 
-                    x0=ratings_df['User 1 Rating'][0], y0=ratings_df['User 2 Rating'][0],
-                    x1=ratings_df['User 1 Rating'][1], y1=ratings_df['User 2 Rating'][1],
-                    line=dict(color="black", width=2, dash="dash"))
+                    x0=ratings_df[f'User {user1_id} Rating'][0], y0=ratings_df[f'User {user2_id} Rating'][0],
+                    x1=ratings_df[f'User {user1_id} Rating'][1], y1=ratings_df[f'User {user2_id} Rating'][1],
+                    line=dict(color="#8B5CF6", width=2, dash="dash"))
         
         fig.update_layout(
             height=200,
-            xaxis=dict(range=[0, 5.5], title="User 1 Rating"),
-            yaxis=dict(range=[0, 5.5], title="User 2 Rating"),
+            xaxis=dict(range=[0, 5.5], title=f"User {user1_id} Rating"),
+            yaxis=dict(range=[0, 5.5], title=f"User {user2_id} Rating"),
             plot_bgcolor='white',
             title="Distance Between Points (First 2 Movies)"
         )
         
         st.plotly_chart(fig, use_container_width=True)
 
-# Movie comparison table
+# Movie comparison table - Modified to clearly show it's based on selected users
 st.markdown("## Movie-by-Movie Comparison")
+st.markdown(f"### Comparing ratings between User {user1_id} and User {user2_id}")
 
-# Create a table with the ratings
+# Create a table with the ratings - enhanced styling with dynamic column names
 st.dataframe(
-    ratings_df.style.background_gradient(
-        cmap='RdYlGn', subset=['User 1 Rating', 'User 2 Rating'], vmin=1, vmax=5
-    ).format({'User 1 Rating': '{:.1f}', 'User 2 Rating': '{:.1f}'}),
+    ratings_df[['Movie', f'User {user1_id} Rating', f'User {user2_id} Rating']].style.background_gradient(
+        cmap='viridis', subset=[f'User {user1_id} Rating', f'User {user2_id} Rating'], vmin=1, vmax=5
+    ).format({f'User {user1_id} Rating': '{:.1f}', f'User {user2_id} Rating': '{:.1f}'}).set_properties(
+        **{'text-align': 'left', 'font-size': '14px'}
+    ).set_table_styles([
+        {'selector': 'th', 'props': [('text-align', 'left'), ('font-weight', 'bold'), ('background-color', '#EDE9FE')]},
+    ]).hide(axis="index"),
     use_container_width=True,
     height=300
 )
+
+# Interactive movie selection for detailed comparison
+st.markdown("### Detailed Movie Comparison")
+selected_movie = st.selectbox("Select a movie to analyze in detail", ratings_df['Movie'])
+selected_movie_data = ratings_df[ratings_df['Movie'] == selected_movie].iloc[0]
+
+# Display selected movie comparison with enhanced styling
+st.markdown('<div class="selected-movie">', unsafe_allow_html=True)
+col1, col2, col3 = st.columns([2, 1, 1])
+with col1:
+    st.markdown(f"### {selected_movie}")
+with col2:
+    st.metric(f"User {user1_id} Rating", f"{selected_movie_data[f'User {user1_id} Rating']:.1f}/5")
+with col3:
+    st.metric(f"User {user2_id} Rating", f"{selected_movie_data[f'User {user2_id} Rating']:.1f}/5")
+
+# Calculate rating difference and display with appropriate styling
+rating_diff = abs(selected_movie_data[f'User {user1_id} Rating'] - selected_movie_data[f'User {user2_id} Rating'])
+if rating_diff < 1:
+    agreement = "Strong Agreement"
+    color = "#10B981"  # success
+elif rating_diff < 2:
+    agreement = "Moderate Agreement"
+    color = "#F59E0B"  # warning
+else:
+    agreement = "Significant Disagreement"
+    color = "#EF4444"  # danger
+
+st.markdown(f"<p style='text-align:center; color:{color}; font-weight:bold; font-size:16px; margin:10px 0;'>Rating Difference: {rating_diff:.1f} - {agreement}</p>", unsafe_allow_html=True)
+
+# Add contextual explanation
+if rating_diff < 1:
+    st.markdown("These users have very similar opinions on this movie, which contributes positively to their overall similarity score.")
+elif rating_diff < 2:
+    st.markdown("These users have somewhat different opinions on this movie, but the difference is not extreme.")
+else:
+    st.markdown("These users have very different opinions on this movie, which reduces their overall similarity score.")
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Practical interpretation
 st.markdown("## Practical Interpretation")
@@ -360,9 +417,10 @@ else:  # Euclidean Distance
 
 st.markdown('</div>', unsafe_allow_html=True)
 
+
 # Footer
 st.markdown("""
 <div style="text-align:center; margin-top:15px; color:#6c757d; font-size:0.8em">
-    © 2025 Similarity Measures Visualizer | Last updated: Saturday, March 01, 2025, 3:05 PM IST
+    © 2025 Similarity Measures Visualizer | Last updated: Saturday, March 01, 2025, 3:15 PM IST
 </div>
 """, unsafe_allow_html=True)
