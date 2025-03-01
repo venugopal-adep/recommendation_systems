@@ -2,52 +2,93 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
 from scipy.spatial.distance import euclidean
 
 # Set page config
-st.set_page_config(page_title="Similarity Measures Explained", layout="wide")
+st.set_page_config(page_title="Similarity Measures Visualizer", layout="wide")
 
-# Custom CSS for aesthetics
+# Custom CSS for clean, compact UI
 st.markdown("""
 <style>
+    /* Main theme colors */
+    :root {
+        --primary: #3498db;
+        --secondary: #f8f9fa;
+        --text: #2c3e50;
+        --success: #2ecc71;
+        --warning: #f39c12;
+        --danger: #e74c3c;
+    }
+    
+    /* Typography */
     body {
-        color: #1E1E1E;
-        background-color: #F0F2F6;
+        color: var(--text);
+        background-color: var(--secondary);
     }
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size: 24px;
+    
+    h1 {
+        color: var(--primary);
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    
+    h2 {
+        color: var(--primary);
+        font-size: 1.4rem;
+        margin-top: 1rem;
     }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: #E1E5EA;
-        border-radius: 4px;
-        color: #1E1E1E;
-        font-weight: 400;
+    
+    h3 {
+        font-size: 1.2rem;
+        margin-top: 0.8rem;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #4A90E2;
-        color: #FFFFFF;
+    
+    /* Card styling */
+    .card {
+        background-color: white;
+        border-radius: 6px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
     }
-    .stButton>button {
-        background-color: #4A90E2;
-        color: #FFFFFF;
+    
+    /* Metric styling */
+    .metric-card {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 10px;
+        text-align: center;
+        border-left: 4px solid var(--primary);
     }
-    .stSelectbox [data-baseweb="select"] {
-        background-color: #FFFFFF;
+    
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--primary);
     }
-    .stRadio [data-baseweb="radio"] {
-        background-color: #FFFFFF;
+    
+    .metric-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    /* Compact elements */
+    .stRadio > div {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+    
+    .stRadio [data-testid="stMarkdownContainer"] > p {
+        font-size: 0.9rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Load the datasets
+# Load the datasets with caching
 @st.cache_data
 def load_data():
     movies = pd.read_csv('movielens/movies.csv')
@@ -59,167 +100,269 @@ movies, ratings = load_data()
 # Create user-item matrix
 user_item_matrix = ratings.pivot(index='userId', columns='movieId', values='rating').fillna(0)
 
-# Title
-st.title("Similarity Measures Explained")
-st.write('**Developed by : Venugopal Adep**')
+# App header
+st.title("Interactive Similarity Measures Visualizer")
+st.markdown('<p style="margin-top:-10px; color:#6c757d;">Developed by: Venugopal Adep</p>', unsafe_allow_html=True)
 
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["Learn", "Explore", "Quiz"])
+# Main content
+st.markdown('<div class="card">', unsafe_allow_html=True)
 
-with tab1:
-    st.header("Understanding Similarity Measures")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.write("""
-        Similarity measures are used in recommender systems to quantify how similar two users or items are. Here are three common measures:
+# Select users and similarity measure
+col1, col2 = st.columns([1, 1])
 
-        1. **Cosine Similarity**: Measures the cosine of the angle between two vectors. It ranges from -1 to 1, where 1 means exactly similar, 0 means no similarity, and -1 means exactly opposite.
+with col1:
+    user1_id = st.selectbox('Select User 1', user_item_matrix.index, index=0)
+    user2_id = st.selectbox('Select User 2', user_item_matrix.index, index=1)
 
-        2. **Pearson Correlation**: Measures the linear correlation between two variables. It ranges from -1 to 1, where 1 is total positive correlation, 0 is no correlation, and -1 is total negative correlation.
+with col2:
+    concept = st.radio(
+        "Select Similarity Measure",
+        ('Cosine Similarity', 'Pearson Correlation', 'Euclidean Distance'),
+        horizontal=True
+    )
+    n_movies = st.slider("Number of movies to compare", 5, 30, 15)
 
-        3. **Euclidean Distance**: Measures the straight-line distance between two points in Euclidean space. A smaller value indicates more similarity.
+# Get user ratings
+user1_ratings = user_item_matrix.loc[user1_id]
+user2_ratings = user_item_matrix.loc[user2_id]
 
-        These measures help in finding users with similar preferences or items with similar characteristics, which is crucial for making recommendations.
-        """)
-    with col2:
-        st.image('movielens/image.png', caption="Similarity Measures Overview", use_column_width=True)
+# Get common rated movies for visualization
+common_rated_indices = (user1_ratings > 0) & (user2_ratings > 0)
+common_movies = user1_ratings.index[common_rated_indices]
+common_movies = common_movies[:n_movies]
 
-with tab2:
-    st.header("Explore Similarity Measures")
+ratings_data = []
+for movie in common_movies:
+    movie_title = movies.loc[movies['movieId'] == movie, 'title'].values[0]
+    ratings_data.append({
+        'Movie': movie_title,
+        'User 1 Rating': user1_ratings[movie],
+        'User 2 Rating': user2_ratings[movie]
+    })
+
+ratings_df = pd.DataFrame(ratings_data)
+
+# Calculate similarity
+def calculate_similarity(user1, user2, method):
+    # Extract only common rated movies (non-zero ratings)
+    common_indices = (user1 > 0) & (user2 > 0)
+    u1 = user1[common_indices]
+    u2 = user2[common_indices]
     
-    col1, col2 = st.columns([1, 2])
+    if len(u1) == 0:
+        return 0  # No common movies
     
-    with col1:
-        # Input elements
-        concept = st.radio(
-            "Select a Similarity Measure",
-            ('Cosine Similarity', 'Pearson Correlation', 'Euclidean Distance')
-        )
+    if method == 'Cosine Similarity':
+        return cosine_similarity([u1], [u2])[0][0]
+    elif method == 'Pearson Correlation':
+        if len(u1) < 2:  # Need at least 2 points for correlation
+            return 0
+        return pearsonr(u1, u2)[0]
+    else:  # Euclidean Distance
+        return euclidean(u1, u2)
 
-        user1_id = st.selectbox('Select User 1', user_item_matrix.index)
-        user2_id = st.selectbox('Select User 2', user_item_matrix.index)
+similarity = calculate_similarity(user1_ratings, user2_ratings, concept)
 
-        n_movies = st.slider("Number of movies to compare", 5, 50, 20)
+# Display similarity score
+st.markdown('<div style="display: flex; justify-content: center; margin: 20px 0;">', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card" style="width: 300px;">', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-value">{similarity:.2f}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-label">{concept}</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-    user1_ratings = user_item_matrix.loc[user1_id]
-    user2_ratings = user_item_matrix.loc[user2_id]
+# Visual explanation of the similarity measure
+st.markdown("## Visual Explanation")
 
-    # Function to calculate similarities
-    def calculate_similarity(user1, user2, method):
-        common_movies = user1.index[user1.notnull() & user2.notnull()]
-        u1 = user1[common_movies]
-        u2 = user2[common_movies]
-        
-        if method == 'Cosine Similarity':
-            return cosine_similarity([u1], [u2])[0][0]
-        elif method == 'Pearson Correlation':
-            return pearsonr(u1, u2)[0]
-        else:  # Euclidean Distance
-            return euclidean(u1, u2)
+col1, col2 = st.columns([3, 2])
 
-    similarity = calculate_similarity(user1_ratings, user2_ratings, concept)
-
-    with col2:
-        st.write(f"**{concept}** between User {user1_id} and User {user2_id} is: {similarity:.2f}")
-
-        if concept == 'Cosine Similarity':
-            st.write("Cosine Similarity measures the cosine of the angle between two vectors. A value of 1 indicates identical preferences, while 0 indicates no similarity.")
-        elif concept == 'Pearson Correlation':
-            st.write("Pearson Correlation measures the linear correlation between two sets of data. A value of 1 indicates perfect positive correlation, -1 indicates perfect negative correlation, and 0 indicates no correlation.")
-        else:
-            st.write("Euclidean Distance measures the straight-line distance between two points in space. A smaller value indicates more similar preferences.")
-
-    # Get common rated movies
-    common_movies = user1_ratings.index[user1_ratings.notnull() & user2_ratings.notnull()]
-    common_movies = common_movies[:n_movies]  # Limit to selected number of movies
-
-    ratings_data = []
-    for movie in common_movies:
-        movie_title = movies.loc[movies['movieId'] == movie, 'title'].values[0]
-        ratings_data.append({
-            'Movie': movie_title,
-            'User 1 Rating': user1_ratings[movie],
-            'User 2 Rating': user2_ratings[movie]
-        })
-
-    ratings_df = pd.DataFrame(ratings_data)
-
-    # Interactive visualization
-    st.write("### Comparison of User Ratings")
+with col1:
+    # Create scatter plot
     fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating', 
-                     text='Movie', title=f'{concept}: User {user1_id} vs User {user2_id}',
-                     labels={'User 1 Rating': f'User {user1_id} Rating', 'User 2 Rating': f'User {user2_id} Rating'},
-                     color='Movie', hover_data=['Movie'])
+                    text='Movie', title=f'Rating Comparison: User {user1_id} vs User {user2_id}',
+                    color='User 1 Rating', color_continuous_scale='Viridis',
+                    hover_data=['Movie'])
 
-    fig.update_traces(textposition='top center', marker=dict(size=10))
+    fig.update_traces(textposition='top center', marker=dict(size=12, opacity=0.8))
     fig.update_layout(
-        height=600, 
-        xaxis=dict(range=[0, 5.5]), 
-        yaxis=dict(range=[0, 5.5]),
-        xaxis_title=f"User {user1_id} Rating",
-        yaxis_title=f"User {user2_id} Rating",
-        showlegend=False
+        height=450, 
+        xaxis=dict(range=[0, 5.5], title=f"User {user1_id} Rating", gridcolor='#f0f0f0'), 
+        yaxis=dict(range=[0, 5.5], title=f"User {user2_id} Rating", gridcolor='#f0f0f0'),
+        plot_bgcolor='white',
+        showlegend=False,
     )
 
     # Add reference line
-    fig.add_shape(type="line", line=dict(dash="dash", color="gray"),
-                  x0=0, y0=0, x1=5.5, y1=5.5)
+    fig.add_shape(type="line", line=dict(dash="dash", color="gray", width=1),
+                x0=0, y0=0, x1=5.5, y1=5.5)
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Interactive movie comparison
-    st.write("### Movie-by-Movie Comparison")
-    selected_movie = st.selectbox("Select a movie to compare ratings", ratings_df['Movie'])
-    movie_data = ratings_df[ratings_df['Movie'] == selected_movie].iloc[0]
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Movie", selected_movie)
-    col2.metric(f"User {user1_id} Rating", movie_data['User 1 Rating'])
-    col3.metric(f"User {user2_id} Rating", movie_data['User 2 Rating'])
-
-    # Explanation of the similarity for this movie
-    rating_diff = abs(movie_data['User 1 Rating'] - movie_data['User 2 Rating'])
-    if rating_diff < 1:
-        st.write("These users have very similar opinions on this movie.")
-    elif rating_diff < 2:
-        st.write("These users have somewhat different opinions on this movie.")
-    else:
-        st.write("These users have very different opinions on this movie.")
-
-    # Explanation of the plot
-    st.write("""
-    **Understanding the Plot:**
-    - Each point represents a movie that both users have rated.
-    - The x-axis shows ratings from User 1, while the y-axis shows ratings from User 2.
-    - Points closer to the dashed line indicate movies where both users gave similar ratings.
-    - Points far from the line show movies where users disagreed.
-    - The color of each point represents a unique movie (hover to see the title).
-
-    **Interpreting Similarity:**
-    - For Cosine Similarity and Pearson Correlation: More points close to the line indicate higher similarity.
-    - For Euclidean Distance: More spread out points indicate larger distance (less similarity).
-    """)
-
-with tab3:
-    st.header("Test Your Knowledge")
+with col2:
+    st.markdown("### What This Means")
     
-    st.subheader("Question 1: What does a Cosine Similarity of 1 indicate?")
-    q1_options = ["Users have opposite preferences", "Users have no similarity", "Users have identical preferences", "The calculation failed"]
-    q1_answer = st.radio("Select your answer:", q1_options, key="q1")
-    if st.button("Show Answer", key="b1"):
-        st.write("The correct answer is: Users have identical preferences.")
-        st.write("Explanation: A Cosine Similarity of 1 means the angle between the two vectors is 0°, indicating that the users have exactly the same preferences.")
+    if concept == 'Cosine Similarity':
+        st.markdown("""
+        **Cosine Similarity** measures the angle between two vectors, ignoring their magnitude.
+        
+        - **Range**: -1 to 1
+        - **Interpretation**: 
+          - 1 = Users have identical preferences
+          - 0 = No similarity
+          - -1 = Opposite preferences
+        
+        **In the plot**: Points clustered along the diagonal line indicate similar ratings patterns, regardless of the actual rating values.
+        """)
+        
+        # Visual representation of cosine similarity
+        st.markdown("#### Vector Representation")
+        
+        # Create a simple vector visualization
+        u1_vec = ratings_df['User 1 Rating'].values[:5]  # First 5 movies
+        u2_vec = ratings_df['User 2 Rating'].values[:5]  # First 5 movies
+        
+        fig = go.Figure()
+        
+        # Add vectors
+        fig.add_trace(go.Scatter(x=[0, u1_vec[0]], y=[0, u1_vec[1]], 
+                                mode='lines+markers', name='User 1',
+                                line=dict(color='blue', width=3)))
+        
+        fig.add_trace(go.Scatter(x=[0, u2_vec[0]], y=[0, u2_vec[1]], 
+                                mode='lines+markers', name='User 2',
+                                line=dict(color='red', width=3)))
+        
+        fig.update_layout(
+            height=200,
+            xaxis=dict(range=[0, 5.5], title="Movie 1 Rating"),
+            yaxis=dict(range=[0, 5.5], title="Movie 2 Rating"),
+            plot_bgcolor='white',
+            title="Vector Angle Visualization (First 2 Movies)"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+    elif concept == 'Pearson Correlation':
+        st.markdown("""
+        **Pearson Correlation** measures the linear relationship between two sets of ratings.
+        
+        - **Range**: -1 to 1
+        - **Interpretation**: 
+          - 1 = Perfect positive correlation
+          - 0 = No correlation
+          - -1 = Perfect negative correlation
+        
+        **In the plot**: Points forming a straight line indicate strong correlation. Pearson accounts for different rating scales (e.g., if one user rates everything higher).
+        """)
+        
+        # Show trend line
+        x = ratings_df['User 1 Rating']
+        y = ratings_df['User 2 Rating']
+        
+        fig = px.scatter(ratings_df, x='User 1 Rating', y='User 2 Rating')
+        fig.add_trace(go.Scatter(x=x, y=np.poly1d(np.polyfit(x, y, 1))(x),
+                                mode='lines', name='Trend Line',
+                                line=dict(color='red', width=2, dash='dash')))
+        
+        fig.update_layout(
+            height=200,
+            xaxis=dict(range=[0, 5.5], title="User 1 Rating"),
+            yaxis=dict(range=[0, 5.5], title="User 2 Rating"),
+            plot_bgcolor='white',
+            title="Correlation Trend Line"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+    else:  # Euclidean Distance
+        st.markdown("""
+        **Euclidean Distance** measures the straight-line distance between rating points.
+        
+        - **Range**: 0 to ∞
+        - **Interpretation**: 
+          - 0 = Identical preferences
+          - Larger values = More different preferences
+        
+        **In the plot**: Points closer to each other in the space indicate more similar ratings. This measure is sensitive to the actual rating values.
+        """)
+        
+        # Show distance visualization
+        st.markdown("#### Distance Visualization")
+        
+        # Create a simple distance visualization for first two points
+        fig = go.Figure()
+        
+        # Add points
+        fig.add_trace(go.Scatter(x=[ratings_df['User 1 Rating'][0]], 
+                                y=[ratings_df['User 2 Rating'][0]],
+                                mode='markers', name='Movie 1',
+                                marker=dict(size=12, color='blue')))
+        
+        fig.add_trace(go.Scatter(x=[ratings_df['User 1 Rating'][1]], 
+                                y=[ratings_df['User 2 Rating'][1]],
+                                mode='markers', name='Movie 2',
+                                marker=dict(size=12, color='red')))
+        
+        # Add line between points to show distance
+        fig.add_shape(type="line", 
+                    x0=ratings_df['User 1 Rating'][0], y0=ratings_df['User 2 Rating'][0],
+                    x1=ratings_df['User 1 Rating'][1], y1=ratings_df['User 2 Rating'][1],
+                    line=dict(color="black", width=2, dash="dash"))
+        
+        fig.update_layout(
+            height=200,
+            xaxis=dict(range=[0, 5.5], title="User 1 Rating"),
+            yaxis=dict(range=[0, 5.5], title="User 2 Rating"),
+            plot_bgcolor='white',
+            title="Distance Between Points (First 2 Movies)"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Question 2: What is the range of Pearson Correlation?")
-    q2_options = ["0 to 1", "-1 to 1", "0 to infinity", "-infinity to infinity"]
-    q2_answer = st.radio("Select your answer:", q2_options, key="q2")
-    if st.button("Show Answer", key="b2"):
-        st.write("The correct answer is: -1 to 1.")
-        st.write("Explanation: Pearson Correlation ranges from -1 (perfect negative correlation) to 1 (perfect positive correlation), with 0 indicating no correlation.")
+# Movie comparison table
+st.markdown("## Movie-by-Movie Comparison")
 
-    st.subheader("Question 3: For Euclidean Distance, what does a smaller value indicate?")
-    q3_options = ["More dissimilar preferences", "More similar preferences", "No relationship between preferences", "Perfect negative correlation"]
-    q3_answer = st.radio("Select your answer:", q3_options, key="q3")
-    if st.button("Show Answer", key="b3"):
-        st.write("The correct answer is: More similar preferences.")
-        st.write("Explanation: In Euclidean Distance, a smaller value indicates that the two points (representing user preferences) are closer together in the feature space, meaning the users have more similar preferences.")
+# Create a table with the ratings
+st.dataframe(
+    ratings_df.style.background_gradient(
+        cmap='RdYlGn', subset=['User 1 Rating', 'User 2 Rating'], vmin=1, vmax=5
+    ).format({'User 1 Rating': '{:.1f}', 'User 2 Rating': '{:.1f}'}),
+    use_container_width=True,
+    height=300
+)
+
+# Practical interpretation
+st.markdown("## Practical Interpretation")
+
+if concept == 'Cosine Similarity':
+    if similarity > 0.8:
+        st.success("These users have very similar preferences. They would likely enjoy similar movies.")
+    elif similarity > 0.5:
+        st.info("These users have somewhat similar preferences. They might enjoy some of the same movies.")
+    else:
+        st.warning("These users have different preferences. They would likely enjoy different movies.")
+elif concept == 'Pearson Correlation':
+    if similarity > 0.7:
+        st.success("These users' ratings are strongly correlated. They tend to rate movies similarly.")
+    elif similarity > 0.3:
+        st.info("These users' ratings are moderately correlated. They sometimes rate movies similarly.")
+    elif similarity > -0.3:
+        st.warning("These users' ratings show little correlation. They rate movies independently.")
+    else:
+        st.error("These users' ratings are negatively correlated. When one rates a movie highly, the other tends to rate it poorly.")
+else:  # Euclidean Distance
+    if similarity < 5:
+        st.success("These users are very close in preference space. They would likely enjoy similar movies.")
+    elif similarity < 10:
+        st.info("These users are moderately close in preference space. They might enjoy some of the same movies.")
+    else:
+        st.warning("These users are far apart in preference space. They would likely enjoy different movies.")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Footer
+st.markdown("""
+<div style="text-align:center; margin-top:15px; color:#6c757d; font-size:0.8em">
+    © 2025 Similarity Measures Visualizer | Last updated: Saturday, March 01, 2025, 3:05 PM IST
+</div>
+""", unsafe_allow_html=True)
